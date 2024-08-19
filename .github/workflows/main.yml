@@ -1,0 +1,30 @@
+name: Validation
+on:
+  pull_request:
+    branches:
+      - main
+jobs:
+  validate:
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        node-version: [20]
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 9.3.0
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'pnpm'
+    - name: Setup ENV
+      run: mv .env.example .env
+    - name: Install dependencies
+      run: pnpm install
+    - name: Linting
+      run: pnpm lint
+    - name: Prettier
+      run: pnpm prettier
