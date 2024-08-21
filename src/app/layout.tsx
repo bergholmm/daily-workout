@@ -17,7 +17,7 @@ const fontSans = FontSans({
 })
 
 export const metadata = {
-  title: 'Web-app-template',
+  title: 'Daily Workout',
   description: '',
   icons: [{ rel: 'icon', url: '/favicon.ico' }],
 }

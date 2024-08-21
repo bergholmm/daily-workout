@@ -1,9 +1,8 @@
-export const safeAsync = async <T, U>(
-  asyncFunc: (...args: U[]) => Promise<T>,
-  ...args: U[]
+export const safeAsync = async <T>(
+  asyncFunc: Promise<T>,
 ): Promise<[T | null, Error | null]> => {
   try {
-    const result = await asyncFunc(...args)
+    const result = await asyncFunc
     return [result, null]
   } catch (error) {
     return [null, error as Error]

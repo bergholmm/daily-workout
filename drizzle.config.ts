@@ -8,5 +8,5 @@ export default {
   dbCredentials: {
     url: env.POSTGRES_URL,
   },
-  tablesFilter: ["web-app-template_*"],
+  tablesFilter: ["daily-workouts_*"],
 } satisfies Config;
