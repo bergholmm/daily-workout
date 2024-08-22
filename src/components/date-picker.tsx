@@ -1,17 +1,18 @@
-"use client"
+'use client'
 
-import * as React from "react"
-import { CalendarIcon } from "@radix-ui/react-icons"
-import { format } from "date-fns"
+import { CalendarIcon } from '@radix-ui/react-icons'
+import { format } from 'date-fns'
+import * as React from 'react'
 
-import { cn } from "~/lib/utils"
-import { Button } from "~/components/ui/button"
-import { Calendar } from "~/components/ui/calendar"
+import { Button } from '~/components/ui/button'
+import { Calendar } from '~/components/ui/calendar'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "~/components/ui/popover"
+} from '~/components/ui/popover'
+
+import { cn } from '~/lib/utils'
 
 type Props = {
   date: Date | undefined
@@ -22,14 +23,14 @@ export const DatePicker: React.FC<Props> = ({ date, setDate }) => {
     <Popover>
       <PopoverTrigger asChild>
         <Button
-          variant={"outline"}
+          variant={'outline'}
           className={cn(
-            "w-[240px] justify-start text-left font-normal",
-            !date && "text-muted-foreground"
+            'w-[240px] justify-start text-left font-normal',
+            !date && 'text-muted-foreground',
           )}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
-          {date ? format(date, "PPP") : <span>Pick a date</span>}
+          {date ? format(date, 'PPP') : <span>Pick a date</span>}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
@@ -43,4 +44,3 @@ export const DatePicker: React.FC<Props> = ({ date, setDate }) => {
     </Popover>
   )
 }
-

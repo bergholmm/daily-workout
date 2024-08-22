@@ -1,17 +1,36 @@
 import useSWR from 'swr'
-import { type WorkoutName } from '~/app/page'
+import { type PublicConfiguration, defaultConfig } from 'swr/_internal'
 
-async function fetcher(...args: Parameters<typeof fetch>) {
-  return (await fetch(...args)).json();
-}
+import { type Workout, type WorkoutName } from '~/lib/types'
+
+import { type APIError } from './APIError'
+import fetcher from './swr'
 
 export const useWorkout = (workoutName: WorkoutName, date?: string) => {
-  const { data, error, isLoading } = useSWR(`/api/workout?workoutName=${workoutName}&date=${date}`, fetcher)
-  console.log('data', data, error, isLoading)
+  const res = useSWR<Workout, APIError>(
+    `/api/workout?workoutName=${workoutName}&date=${date}`,
+    fetcher,
+    {
+      onErrorRetry: (error, key, config, revalidate, revalidateOpts) => {
+        const configForDelegate = config as Readonly<
+          PublicConfiguration<Workout, APIError, (path: string) => unknown>
+        >
+
+        if (error.code === 404) return
+        defaultConfig.onErrorRetry(
+          error,
+          key,
+          configForDelegate,
+          revalidate,
+          revalidateOpts,
+        )
+      },
+    },
+  )
 
   return {
-    data,
-    isLoading,
-    error,
+    workout: res.data,
+    isLoading: res.isLoading,
+    error: res.error,
   }
 }
