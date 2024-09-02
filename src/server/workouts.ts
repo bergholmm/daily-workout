@@ -63,6 +63,7 @@ const fetchLinchpinWorkout = async (date: string) => {
 
 const getInvictusUrl = (date: string) =>
   `https://www.crossfitinvictus.com/wod/${date}-performance/`
+
 const getInvictusUrl2 = (date: string) =>
   `https://www.crossfitinvictus.com/wod/${date}-performance-fitness/`
 const monthMap: Record<string, string> = {
@@ -81,7 +82,9 @@ const monthMap: Record<string, string> = {
 }
 
 const fetchInvictusWorkout = async (date: string) => {
-  const [year, month, day] = date.split('-')
+  const d = new Date(date)
+  const day = String(d.getDate())
+  const [year, month] = date.split('-')
   const workoutDate = `${monthMap[month!]}-${day}-${year}`
   const url = getInvictusUrl(workoutDate)
   const [res, err] = await safeAsync(fetch(url))
@@ -158,9 +161,9 @@ const months = [
 ]
 const formatPushJerkDate = (date: Date): string => {
   const year = date.getFullYear()
-  const month = months[date.getMonth()] // Get month name
-  const day = String(date.getDate()).padStart(2, '0') // Ensure day is two digits
-  const dayOfWeek = daysOfWeek[date.getDay()] // Get day of the week
+  const month = months[date.getMonth()]
+  const day = String(date.getDate())
+  const dayOfWeek = daysOfWeek[date.getDay()]
 
   return `${dayOfWeek}-${month}-${day}-${year}`
 }
