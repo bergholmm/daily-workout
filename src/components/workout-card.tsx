@@ -40,19 +40,19 @@ export const WorkoutCard: React.FC<Props> = ({ workoutName, date }) => {
 
   if (isLoading) {
     return (
-      <Card className="rounded-none border-0 sm:rounded-xl sm:border bg-muted/0 sm:bg-card">
-        <CardHeader className="px-0 sm:p-6">
+      <Card className="rounded-none border-0 bg-muted/0">
+        <CardHeader className="px-0">
           <CardTitle>
             <Skeleton className="h-6" />
           </CardTitle>
         </CardHeader>
-        <CardContent className="px-0 sm:p-6">
+        <CardContent className="px-0">
           <Skeleton className="h-[125px] rounded-xl" />
         </CardContent>
-        <CardContent className="px-0 sm:p-6">
+        <CardContent className="px-0">
           <Skeleton className="h-[125px] rounded-xl" />
         </CardContent>
-        <CardContent className="px-0 sm:p-6">
+        <CardContent className="px-0">
           <Skeleton className="h-[125px] rounded-xl" />
         </CardContent>
       </Card>
@@ -60,12 +60,12 @@ export const WorkoutCard: React.FC<Props> = ({ workoutName, date }) => {
   }
 
   return (
-    <Card className="rounded-none border-0 sm:rounded-xl sm:border bg-muted/0 sm:bg-card">
-      <CardHeader className="px-0 sm:p-6">
+    <Card className="rounded-none border-0 bg-muted/0">
+      <CardHeader className="px-0">
         <CardTitle>{capitalize(workoutName)}</CardTitle>
         <CardDescription>{getDateStr(date)}</CardDescription>
       </CardHeader>
-      <CardContent className="px-0 sm:p-6">
+      <CardContent className="px-0">
         {workout?.workout.map((exercise, i) => (
           <p key={i}>{exercise === SEPARATOR ? <br /> : exercise}</p>
         ))}
