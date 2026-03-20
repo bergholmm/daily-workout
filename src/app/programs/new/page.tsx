@@ -25,8 +25,13 @@ export default function NewProgramPage() {
   }
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-4 px-4 pt-10 sm:px-0">
-      <h1 className="text-3xl font-bold">New Program</h1>
+    <div className="mx-auto flex max-w-2xl flex-col gap-6 px-4 pb-20 pt-8 sm:px-6 md:pb-16 lg:max-w-3xl">
+      <div>
+        <p className="text-xs font-medium tracking-widest uppercase text-muted-foreground">
+          Create
+        </p>
+        <h1 className="mt-1 text-3xl font-bold tracking-tight">New Program</h1>
+      </div>
       <ProgramForm
         onSubmit={handleSubmit}
         isSubmitting={isCreating}

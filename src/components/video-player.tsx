@@ -6,7 +6,7 @@ type Props = {
 
 export function VideoPlayer({ url }: Props) {
   return (
-    <div className="aspect-video w-full overflow-hidden rounded-lg">
+    <div className="aspect-video w-full overflow-hidden">
       <video className="h-full w-full" controls playsInline preload="metadata">
         <source src={url} type="application/x-mpegURL" />
         <source src={url} type="video/mp4" />

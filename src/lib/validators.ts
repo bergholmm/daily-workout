@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-export const providerNames = ["invictus", "pushjerk", "linchpin"] as const
+export const providerNames = ["pushjerk", "linchpin"] as const
 
 export const providerNameSchema = z.enum(providerNames)
 
@@ -18,16 +18,22 @@ export const updateProgramSchema = z.object({
   description: z.string().nullable().optional(),
 })
 
+export const workoutSectionSchema = z.object({
+  title: z.string().min(1),
+  exercises: z.array(z.string().min(1)).min(1),
+  videoUrl: z.string().url().nullable().optional(),
+})
+
 export const createProgramWorkoutSchema = z.object({
   date: dateSchema,
   title: z.string().max(255).nullable().optional(),
-  content: z.array(z.string()).min(1),
+  content: z.array(workoutSectionSchema).min(1),
   videoUrl: z.string().url().nullable().optional(),
 })
 
 export const updateProgramWorkoutSchema = z.object({
   date: dateSchema.optional(),
   title: z.string().max(255).nullable().optional(),
-  content: z.array(z.string()).min(1).optional(),
+  content: z.array(workoutSectionSchema).min(1).optional(),
   videoUrl: z.string().url().nullable().optional(),
 })

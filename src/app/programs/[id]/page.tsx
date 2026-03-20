@@ -1,24 +1,38 @@
 "use client"
 
-import { Pencil, Plus, Trash2 } from "lucide-react"
+import {
+  ArrowLeft,
+  Dumbbell,
+  Ellipsis,
+  Pencil,
+  Plus,
+  Trash2,
+} from "lucide-react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
 import { useState } from "react"
 import { toast } from "sonner"
 
-import { ProgramWorkoutCard } from "@/components/program-workout-card"
+import { ResponsiveDialog } from "@/components/responsive-dialog"
 import { Button } from "@/components/ui/button"
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty"
 import { Skeleton } from "@/components/ui/skeleton"
 import { WorkoutForm } from "@/components/workout-form"
 
 import { useProgram, useProgramWorkouts } from "@/lib/hooks/use-programs"
+import type { WorkoutSection } from "@/lib/types"
 
 export default function ProgramPage() {
   const params = useParams<{ id: string }>()
@@ -36,7 +50,7 @@ export default function ProgramPage() {
   async function handleAddWorkout(data: {
     date: string
     title: string | null
-    content: string[]
+    content: WorkoutSection[]
     videoUrl: string | null
   }) {
     try {
@@ -53,9 +67,7 @@ export default function ProgramPage() {
     try {
       const res = await fetch(
         `/api/programs/${programId}/workouts/${workoutId}`,
-        {
-          method: "DELETE",
-        },
+        { method: "DELETE" },
       )
       if (!res.ok) throw new Error()
       toast.success("Workout deleted")
@@ -67,89 +79,134 @@ export default function ProgramPage() {
 
   if (programLoading) {
     return (
-      <div className="mx-auto flex max-w-2xl flex-col gap-4 px-4 pt-10 sm:px-0">
-        <Skeleton className="h-10 w-48" />
-        <Skeleton className="h-[200px] rounded-xl" />
+      <div className="mx-auto flex max-w-2xl flex-col gap-6 px-4 pb-20 pt-8 sm:px-6 md:pb-16 lg:max-w-3xl">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-32" />
+        <Skeleton className="h-32" />
       </div>
     )
   }
 
   if (!program) {
     return (
-      <div className="mx-auto flex max-w-2xl flex-col gap-4 px-4 pt-10 sm:px-0">
-        <p>Program not found.</p>
+      <div className="mx-auto flex max-w-2xl flex-col gap-6 px-4 pb-20 pt-8 sm:px-6 md:pb-16 lg:max-w-3xl">
+        <p className="text-muted-foreground">Program not found.</p>
       </div>
     )
   }
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-4 px-4 pt-10 sm:px-0">
-      <div className="flex items-center justify-between">
+    <div className="mx-auto flex max-w-2xl flex-col gap-6 px-4 pb-20 pt-8 sm:px-6 md:pb-16 lg:max-w-3xl">
+      {/* Back link */}
+      <Link
+        href="/programs"
+        className="flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <ArrowLeft className="h-3 w-3" />
+        Programs
+      </Link>
+
+      {/* Header */}
+      <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-3xl font-bold">{program.name}</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{program.name}</h1>
           {program.description && (
-            <p className="mt-1 text-muted-foreground">{program.description}</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {program.description}
+            </p>
           )}
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-1.5">
           <Button
-            variant="outline"
-            size="sm"
+            variant="ghost"
+            size="icon-sm"
             render={<Link href={`/programs/${programId}/edit`} />}
           >
-            <Pencil className="mr-2 h-4 w-4" />
-            Edit
+            <Pencil className="h-3.5 w-3.5" />
           </Button>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger render={<Button size="sm" />}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Workout
-            </DialogTrigger>
-            <DialogContent className="max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Add Workout</DialogTitle>
-              </DialogHeader>
-              <WorkoutForm
-                onSubmit={handleAddWorkout}
-                isSubmitting={isCreating}
-                submitLabel="Add Workout"
-              />
-            </DialogContent>
-          </Dialog>
+          <ResponsiveDialog
+            open={dialogOpen}
+            onOpenChange={setDialogOpen}
+            trigger={
+              <Button size="sm">
+                <Plus className="h-4 w-4" />
+                Add
+              </Button>
+            }
+            title="Add Workout"
+          >
+            <WorkoutForm
+              onSubmit={handleAddWorkout}
+              isSubmitting={isCreating}
+              submitLabel="Add Workout"
+            />
+          </ResponsiveDialog>
         </div>
       </div>
 
+      {/* Workouts list */}
       {workoutsLoading && (
-        <div className="space-y-4">
-          <Skeleton className="h-[150px] rounded-xl" />
-          <Skeleton className="h-[150px] rounded-xl" />
+        <div className="space-y-3">
+          <Skeleton className="h-32" />
+          <Skeleton className="h-32" />
         </div>
       )}
 
       {workouts?.length === 0 && (
-        <p className="text-muted-foreground">
-          No workouts yet. Add one to get started.
-        </p>
+        <Empty className="h-32 border border-dashed border-border/50">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <Dumbbell />
+            </EmptyMedia>
+            <EmptyTitle>No workouts yet</EmptyTitle>
+            <EmptyDescription>Add one to get started.</EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       )}
 
-      <div className="space-y-4">
+      <div className="space-y-2">
         {workouts?.map((w) => (
-          <div key={w.id} className="relative">
-            <div className="absolute right-2 top-2 z-10">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                onClick={() => handleDeleteWorkout(w.id)}
+          <div
+            key={w.id}
+            className="flex items-center border border-border/50 bg-card/50 transition-colors hover:border-primary/30 hover:bg-card"
+          >
+            <Link
+              href={`/programs/${programId}/workouts/${w.id}`}
+              className="flex flex-1 items-center justify-between px-4 py-3"
+            >
+              <div>
+                <h3 className="text-sm font-semibold">
+                  {w.title ? `${w.title}` : w.date}
+                </h3>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {w.title ? w.date + " · " : ""}
+                  {w.content.length}{" "}
+                  {w.content.length === 1 ? "section" : "sections"}
+                </p>
+              </div>
+            </Link>
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="mr-2 text-muted-foreground"
+                  />
+                }
               >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-            <ProgramWorkoutCard
-              title={w.title ? `${w.date} — ${w.title}` : w.date}
-              content={w.content}
-              videoUrl={w.videoUrl}
-            />
+                <Ellipsis className="h-4 w-4" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  className="text-destructive"
+                  onClick={() => handleDeleteWorkout(w.id)}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         ))}
       </div>

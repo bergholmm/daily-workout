@@ -6,16 +6,17 @@ import {
   dateSchema,
   providerNameSchema,
   updateProgramSchema,
+  workoutSectionSchema,
 } from "../validators"
 
 describe("providerNameSchema", () => {
   it("accepts valid provider names", () => {
-    expect(providerNameSchema.parse("invictus")).toBe("invictus")
     expect(providerNameSchema.parse("pushjerk")).toBe("pushjerk")
     expect(providerNameSchema.parse("linchpin")).toBe("linchpin")
   })
 
   it("rejects invalid provider names", () => {
+    expect(() => providerNameSchema.parse("invictus")).toThrow()
     expect(() => providerNameSchema.parse("invalid")).toThrow()
     expect(() => providerNameSchema.parse("")).toThrow()
   })
@@ -65,21 +66,45 @@ describe("updateProgramSchema", () => {
   })
 })
 
+describe("workoutSectionSchema", () => {
+  it("accepts a valid section", () => {
+    const result = workoutSectionSchema.parse({
+      title: "Movement Prep: [2-3 Sets]",
+      exercises: ["Shinbox Extension (8 Reps)", "Dragon Lunge (10 Reps)"],
+    })
+    expect(result.title).toBe("Movement Prep: [2-3 Sets]")
+    expect(result.exercises).toHaveLength(2)
+  })
+
+  it("rejects empty title", () => {
+    expect(() =>
+      workoutSectionSchema.parse({ title: "", exercises: ["A"] }),
+    ).toThrow()
+  })
+
+  it("rejects empty exercises array", () => {
+    expect(() =>
+      workoutSectionSchema.parse({ title: "Section", exercises: [] }),
+    ).toThrow()
+  })
+})
+
 describe("createProgramWorkoutSchema", () => {
   it("accepts valid workout data", () => {
     const result = createProgramWorkoutSchema.parse({
       date: "2024-01-15",
-      content: ["Line 1", "Line 2"],
+      content: [{ title: "Warm Up", exercises: ["Run 400m", "Stretch"] }],
     })
     expect(result.date).toBe("2024-01-15")
-    expect(result.content).toEqual(["Line 1", "Line 2"])
+    expect(result.content).toHaveLength(1)
+    expect(result.content[0].title).toBe("Warm Up")
   })
 
   it("accepts optional fields", () => {
     const result = createProgramWorkoutSchema.parse({
       date: "2024-01-15",
       title: "Day 1",
-      content: ["Workout"],
+      content: [{ title: "Main", exercises: ["Squats"] }],
       videoUrl: "https://stream.mux.com/test.m3u8",
     })
     expect(result.title).toBe("Day 1")
@@ -99,7 +124,7 @@ describe("createProgramWorkoutSchema", () => {
     expect(() =>
       createProgramWorkoutSchema.parse({
         date: "2024-01-15",
-        content: ["A"],
+        content: [{ title: "A", exercises: ["B"] }],
         videoUrl: "not-a-url",
       }),
     ).toThrow()

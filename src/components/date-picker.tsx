@@ -25,17 +25,18 @@ export function DatePicker({ date, setDate }: Props) {
         render={
           <Button
             variant="outline"
+            size="sm"
             className={cn(
-              "w-[240px] justify-start text-left",
+              "justify-start text-left",
               !date && "text-muted-foreground",
             )}
           />
         }
       >
-        <CalendarIcon className="mr-2 h-4 w-4" />
-        {date ? format(date, "PPP") : <span>Pick a date</span>}
+        <CalendarIcon className="h-3.5 w-3.5" />
+        {date ? format(date, "MMM d") : <span>Pick a date</span>}
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
+      <PopoverContent className="w-auto p-0" align="center">
         <Calendar mode="single" selected={date} onSelect={setDate} />
       </PopoverContent>
     </Popover>

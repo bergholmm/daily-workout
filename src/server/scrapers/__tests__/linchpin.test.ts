@@ -3,7 +3,7 @@ import { resolve } from "path"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { fetchLinchpinWorkout } from "../linchpin"
-import { SEPARATOR, ScraperError } from "../utils"
+import { BREAK, ScraperError } from "../utils"
 
 const fixturesDir = resolve(__dirname, "fixtures")
 
@@ -30,7 +30,7 @@ describe("fetchLinchpinWorkout", () => {
     const result = await fetchLinchpinWorkout("2024-01-15")
     expect(result).toContain("Warm Up")
     expect(result).toContain("Thrusters (95/65)")
-    expect(result.some((l) => l === SEPARATOR)).toBe(true)
+    expect(result.some((l) => l === BREAK)).toBe(true)
   })
 
   it("generates correct URL format (MM-DD-YYYY)", async () => {

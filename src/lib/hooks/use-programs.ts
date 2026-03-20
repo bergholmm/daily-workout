@@ -1,6 +1,8 @@
 import useSWR from "swr"
 import useSWRMutation from "swr/mutation"
 
+import type { WorkoutSection } from "@/lib/types"
+
 import fetcher from "../fetcher"
 
 type Program = {
@@ -17,7 +19,7 @@ type ProgramWorkout = {
   programId: number
   date: string
   title: string | null
-  content: string[]
+  content: WorkoutSection[]
   videoUrl: string | null
   createdAt: string
   updatedAt: string

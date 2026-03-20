@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm"
 import {
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   serial,
@@ -11,8 +12,9 @@ import {
   varchar,
 } from "drizzle-orm/pg-core"
 
+import type { WorkoutSection } from "@/lib/types"
+
 export const providerNameEnum = pgEnum("provider_name", [
-  "invictus",
   "pushjerk",
   "linchpin",
 ])
@@ -63,10 +65,7 @@ export const programWorkouts = pgTable(
       .references(() => programs.id, { onDelete: "cascade" }),
     date: varchar("date", { length: 10 }).notNull(),
     title: varchar("title", { length: 255 }),
-    content: text("content")
-      .array()
-      .notNull()
-      .default(sql`ARRAY[]::text[]`),
+    content: jsonb("content").$type<WorkoutSection[]>().notNull().default([]),
     videoUrl: text("video_url"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .default(sql`CURRENT_TIMESTAMP`)

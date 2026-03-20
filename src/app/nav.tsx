@@ -1,0 +1,53 @@
+"use client"
+
+import { Dumbbell } from "lucide-react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+
+import { cn } from "@/lib/utils"
+
+const links = [
+  { href: "/", label: "Today" },
+  { href: "/programs", label: "Programs" },
+]
+
+export function Nav() {
+  const pathname = usePathname()
+
+  return (
+    <nav className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md">
+      <div className="mx-auto flex max-w-2xl items-center justify-between px-4 py-3 sm:px-6 lg:max-w-3xl">
+        <div className="flex items-center gap-6">
+          <Link href="/" className="flex items-center gap-2 text-primary">
+            <Dumbbell className="h-5 w-5" />
+            <span className="text-sm font-bold tracking-wider uppercase">
+              WOD
+            </span>
+          </Link>
+          <div className="hidden items-center gap-1 md:flex">
+            {links.map((link) => {
+              const isActive =
+                link.href === "/"
+                  ? pathname === "/"
+                  : pathname.startsWith(link.href)
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={cn(
+                    "px-3 py-1.5 text-xs font-medium transition-colors",
+                    isActive
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {link.label}
+                </Link>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+    </nav>
+  )
+}

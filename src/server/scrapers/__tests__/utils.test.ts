@@ -58,4 +58,39 @@ describe("extractTextFromElements", () => {
     const result = extractTextFromElements([])
     expect(result).toEqual([])
   })
+
+  it("preserves links as markdown", () => {
+    const root = parse(
+      '<div><p>10 <a href="https://www.youtube.com/watch?v=abc">Wall Balls</a> (20/14)</p></div>',
+    )
+    const elements = Array.from(root.querySelectorAll("p"))
+    const result = extractTextFromElements(elements)
+    expect(result).toEqual([
+      "10 [Wall Balls](https://www.youtube.com/watch?v=abc) (20/14)",
+    ])
+  })
+
+  it("preserves multiple links in one element", () => {
+    const root = parse(
+      '<div><p><a href="https://youtube.com/1">Ex A</a> and <a href="https://youtube.com/2">Ex B</a></p></div>',
+    )
+    const elements = Array.from(root.querySelectorAll("p"))
+    const result = extractTextFromElements(elements)
+    expect(result).toEqual([
+      "[Ex A](https://youtube.com/1) and [Ex B](https://youtube.com/2)",
+    ])
+  })
+
+  it("handles nested strong/em tags with links", () => {
+    const root = parse(
+      '<div><p><strong>Warm-up</strong></p><p>Do <a href="https://example.com">this</a></p></div>',
+    )
+    const elements = Array.from(root.querySelectorAll("p"))
+    const result = extractTextFromElements(elements)
+    expect(result).toEqual([
+      "Warm-up",
+      SEPARATOR,
+      "Do [this](https://example.com)",
+    ])
+  })
 })

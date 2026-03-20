@@ -2,15 +2,13 @@ import "server-only"
 
 import type { ProviderName } from "../db/schema"
 import * as dbWorkouts from "../db/workouts"
-import { fetchInvictusWorkout } from "./invictus"
 import { fetchLinchpinWorkout } from "./linchpin"
 import { fetchPushjerkWorkout } from "./pushjerk"
 import { ScraperError } from "./utils"
 
 type ScraperFn = (date: string) => Promise<string[]>
 
-const scrapers: Record<ProviderName, ScraperFn> = {
-  invictus: fetchInvictusWorkout,
+const scrapers: Partial<Record<ProviderName, ScraperFn>> = {
   pushjerk: fetchPushjerkWorkout,
   linchpin: fetchLinchpinWorkout,
 }
@@ -22,6 +20,12 @@ export async function getWorkout(providerName: ProviderName, date: string) {
 
   // Scrape from provider
   const scraper = scrapers[providerName]
+  if (!scraper) {
+    throw new ScraperError(
+      `Provider "${providerName}" is not available`,
+      "not_found",
+    )
+  }
   const content = await scraper(date)
 
   // Cache and return

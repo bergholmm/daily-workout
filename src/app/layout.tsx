@@ -1,7 +1,9 @@
 import { ClerkProvider } from "@clerk/nextjs"
+import { dark } from "@clerk/themes"
+import type { Viewport } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
-import Link from "next/link"
 
+import { BottomNav } from "@/components/bottom-nav"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
@@ -9,6 +11,7 @@ import { TooltipProvider } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 
 import "./globals.css"
+import { Nav } from "./nav"
 
 const fontSans = Geist({
   subsets: ["latin"],
@@ -17,7 +20,7 @@ const fontSans = Geist({
 
 const fontMono = Geist_Mono({
   subsets: ["latin"],
-  variable: "--font-mono",
+  variable: "--font-geist-mono",
 })
 
 export const metadata = {
@@ -26,42 +29,30 @@ export const metadata = {
   icons: [{ rel: "icon", url: "/favicon.ico" }],
 }
 
+export const viewport: Viewport = {
+  viewportFit: "cover",
+}
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
   return (
-    <ClerkProvider>
+    <ClerkProvider appearance={{ baseTheme: dark }}>
       <html
         lang="en"
         suppressHydrationWarning
-        className={cn(
-          "antialiased",
-          fontSans.variable,
-          "font-mono",
-          fontMono.variable,
-        )}
+        className={cn("dark antialiased", fontSans.variable, fontMono.variable)}
       >
         <body>
           <ThemeProvider>
             <TooltipProvider>
-              <div className="flex min-h-screen w-full flex-col bg-muted/40">
-                <nav className="border-b px-4 py-3 sm:px-6">
-                  <div className="mx-auto flex max-w-2xl items-center gap-6">
-                    <Link href="/" className="text-lg font-bold">
-                      Workout
-                    </Link>
-                    <Link
-                      href="/programs"
-                      className="text-sm text-muted-foreground hover:text-foreground"
-                    >
-                      Programs
-                    </Link>
-                  </div>
-                </nav>
+              <div className="flex min-h-screen w-full flex-col">
+                <Nav />
                 <main className="flex-1">{children}</main>
               </div>
+              <BottomNav />
               <Toaster />
             </TooltipProvider>
           </ThemeProvider>

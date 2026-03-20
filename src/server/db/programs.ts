@@ -2,6 +2,8 @@ import "server-only"
 
 import { and, eq } from "drizzle-orm"
 
+import type { WorkoutSection } from "@/lib/types"
+
 import { db } from "."
 import { programWorkouts, programs } from "./schema"
 
@@ -78,7 +80,7 @@ export async function createProgramWorkout(data: {
   programId: number
   date: string
   title?: string | null
-  content: string[]
+  content: WorkoutSection[]
   videoUrl?: string | null
 }) {
   const result = await db.insert(programWorkouts).values(data).returning()
@@ -90,7 +92,7 @@ export async function updateProgramWorkout(
   data: {
     date?: string
     title?: string | null
-    content?: string[]
+    content?: WorkoutSection[]
     videoUrl?: string | null
   },
 ) {
