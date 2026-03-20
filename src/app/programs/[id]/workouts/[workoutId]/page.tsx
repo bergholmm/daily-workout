@@ -1,11 +1,13 @@
 "use client"
 
-import { ArrowLeft, Ellipsis, Trash2 } from "lucide-react"
+import { ArrowLeft, Ellipsis, Pencil, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
+import { useState } from "react"
 import { toast } from "sonner"
 
 import { ProgramWorkoutCard } from "@/components/program-workout-card"
+import { ResponsiveDialog } from "@/components/responsive-dialog"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -14,8 +16,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Skeleton } from "@/components/ui/skeleton"
+import { WorkoutForm } from "@/components/workout-form"
 
 import { useProgram, useProgramWorkouts } from "@/lib/hooks/use-programs"
+import type { WorkoutSection } from "@/lib/types"
 
 export default function WorkoutDetailPage() {
   const params = useParams<{ id: string; workoutId: string }>()
@@ -25,6 +29,8 @@ export default function WorkoutDetailPage() {
   const { program } = useProgram(programId)
   const { workouts, isLoading, mutate } = useProgramWorkouts(programId)
   const workout = workouts?.find((w) => w.id === workoutId)
+  const [editOpen, setEditOpen] = useState(false)
+  const [isUpdating, setIsUpdating] = useState(false)
 
   async function handleDelete() {
     try {
@@ -38,6 +44,33 @@ export default function WorkoutDetailPage() {
       router.push(`/programs/${programId}`)
     } catch {
       toast.error("Failed to delete workout")
+    }
+  }
+
+  async function handleUpdate(data: {
+    date: string
+    title: string | null
+    content: WorkoutSection[]
+    videoUrl: string | null
+  }) {
+    setIsUpdating(true)
+    try {
+      const res = await fetch(
+        `/api/programs/${programId}/workouts/${workoutId}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        },
+      )
+      if (!res.ok) throw new Error()
+      toast.success("Workout updated")
+      setEditOpen(false)
+      mutate()
+    } catch {
+      toast.error("Failed to update workout")
+    } finally {
+      setIsUpdating(false)
     }
   }
 
@@ -81,6 +114,10 @@ export default function WorkoutDetailPage() {
             <Ellipsis className="h-4 w-4" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setEditOpen(true)}>
+              <Pencil className="h-3.5 w-3.5" />
+              Edit workout
+            </DropdownMenuItem>
             <DropdownMenuItem
               className="text-destructive"
               onClick={handleDelete}
@@ -97,9 +134,7 @@ export default function WorkoutDetailPage() {
           {workout.title ?? workout.date}
         </h1>
         {workout.title && (
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            {workout.date}
-          </p>
+          <p className="mt-0.5 text-sm text-muted-foreground">{workout.date}</p>
         )}
       </div>
 
@@ -108,6 +143,25 @@ export default function WorkoutDetailPage() {
         content={workout.content}
         videoUrl={workout.videoUrl}
       />
+
+      <ResponsiveDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        trigger={<span />}
+        title="Edit Workout"
+      >
+        <WorkoutForm
+          initial={{
+            date: workout.date,
+            title: workout.title,
+            content: workout.content,
+            videoUrl: workout.videoUrl,
+          }}
+          onSubmit={handleUpdate}
+          isSubmitting={isUpdating}
+          submitLabel="Save Changes"
+        />
+      </ResponsiveDialog>
     </div>
   )
 }

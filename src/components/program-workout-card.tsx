@@ -47,10 +47,7 @@ export function ProgramWorkoutCard({ title, content, videoUrl }: Props) {
               {section.title}
             </p>
             {section.exercises.map((exercise, j) => (
-              <p
-                key={j}
-                className="text-sm leading-relaxed text-foreground/80"
-              >
+              <p key={j} className="text-sm leading-relaxed text-foreground/80">
                 {exercise}
               </p>
             ))}
