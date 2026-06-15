@@ -1,4 +1,3 @@
-import { auth } from "@clerk/nextjs/server"
 import { type NextRequest, NextResponse } from "next/server"
 
 import { ScraperError, getWorkout } from "@/server/scrapers"
@@ -6,11 +5,6 @@ import { ScraperError, getWorkout } from "@/server/scrapers"
 import { providerNameSchema } from "@/lib/validators"
 
 export async function GET(req: NextRequest) {
-  const { userId } = await auth()
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
-
   const searchParams = req.nextUrl.searchParams
   const date =
     searchParams.get("date") ?? new Date().toISOString().split("T")[0]!
