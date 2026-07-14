@@ -28,7 +28,11 @@ export default function ProgramsPage() {
           </p>
           <h1 className="mt-1 text-3xl font-bold tracking-tight">Programs</h1>
         </div>
-        <Button size="sm" render={<Link href="/programs/new" />}>
+        <Button
+          size="sm"
+          nativeButton={false}
+          render={<Link href="/programs/new" />}
+        >
           <Plus className="h-4 w-4" />
           New
         </Button>

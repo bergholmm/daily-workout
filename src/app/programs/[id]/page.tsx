@@ -120,6 +120,7 @@ export default function ProgramPage() {
           <Button
             variant="ghost"
             size="icon-sm"
+            nativeButton={false}
             render={<Link href={`/programs/${programId}/edit`} />}
           >
             <Pencil className="h-3.5 w-3.5" />

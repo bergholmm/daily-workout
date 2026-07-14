@@ -1,6 +1,6 @@
 import "server-only"
 
-import { and, eq } from "drizzle-orm"
+import { and, asc, desc, eq, lte, or } from "drizzle-orm"
 
 import type { WorkoutSection } from "@/lib/types"
 
@@ -18,6 +18,15 @@ export async function getProgram(id: number) {
     .select()
     .from(programs)
     .where(eq(programs.id, id))
+    .limit(1)
+  return result[0] ?? null
+}
+
+export async function getPublicProgramBySlug(slug: string) {
+  const result = await db
+    .select()
+    .from(programs)
+    .where(and(eq(programs.slug, slug), eq(programs.isPublic, true)))
     .limit(1)
   return result[0] ?? null
 }
@@ -59,6 +68,28 @@ export async function listProgramWorkouts(programId: number) {
     .from(programWorkouts)
     .where(eq(programWorkouts.programId, programId))
     .orderBy(programWorkouts.date)
+}
+
+export async function listVisibleProgramWorkouts(
+  programId: number,
+  now = new Date(),
+) {
+  return db
+    .select()
+    .from(programWorkouts)
+    .where(
+      and(
+        eq(programWorkouts.programId, programId),
+        or(
+          eq(programWorkouts.status, "published"),
+          and(
+            eq(programWorkouts.status, "scheduled"),
+            lte(programWorkouts.publishAt, now),
+          ),
+        ),
+      ),
+    )
+    .orderBy(desc(programWorkouts.date), asc(programWorkouts.id))
 }
 
 export async function getProgramWorkoutsByDate(

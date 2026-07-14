@@ -8,7 +8,11 @@ import fetcher from "../fetcher"
 type Program = {
   id: number
   name: string
+  slug: string | null
   description: string | null
+  isPublic: boolean
+  startDate: string | null
+  durationWeeks: number | null
   createdBy: string
   createdAt: string
   updatedAt: string
@@ -19,8 +23,17 @@ type ProgramWorkout = {
   programId: number
   date: string
   title: string | null
+  summary: string | null
   content: WorkoutSection[]
   videoUrl: string | null
+  status: "draft" | "scheduled" | "published"
+  publishAt: string | null
+  publicationKey: string | null
+  weekNumber: number | null
+  sessionNumber: number | null
+  durationMinutes: number | null
+  focus: string[]
+  equipment: string[]
   createdAt: string
   updatedAt: string
 }

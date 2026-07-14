@@ -29,17 +29,20 @@ describe("middleware", () => {
     protect.mockReset()
   })
 
-  it.each(["/", "/api/workout"])(
-    "allows public daily workout route %s without auth",
-    async (url) => {
-      const middleware = (await import("./middleware"))
-        .default as unknown as MiddlewareHandler
+  it.each([
+    "/",
+    "/api/workout",
+    "/training",
+    "/training?date=2026-07-14",
+    "/wod",
+  ])("allows public daily workout route %s without auth", async (url) => {
+    const middleware = (await import("./middleware"))
+      .default as unknown as MiddlewareHandler
 
-      await middleware({ protect }, new Request(`http://localhost${url}`))
+    await middleware({ protect }, new Request(`http://localhost${url}`))
 
-      expect(protect).not.toHaveBeenCalled()
-    },
-  )
+    expect(protect).not.toHaveBeenCalled()
+  })
 
   it.each(["/programs", "/api/programs"])(
     "protects private program route %s",

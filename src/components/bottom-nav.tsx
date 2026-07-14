@@ -1,13 +1,14 @@
 "use client"
 
-import { CalendarDays, LayoutList } from "lucide-react"
+import { CalendarDays, LayoutList, Zap } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
 import { cn } from "@/lib/utils"
 
 const tabs = [
-  { href: "/", label: "Today", icon: CalendarDays },
+  { href: "/training", label: "Training", icon: Zap },
+  { href: "/wod", label: "Daily", icon: CalendarDays },
   { href: "/programs", label: "Programs", icon: LayoutList },
 ]
 
@@ -21,8 +22,7 @@ export function BottomNav() {
     >
       <div className="flex items-stretch">
         {tabs.map((tab) => {
-          const isActive =
-            tab.href === "/" ? pathname === "/" : pathname.startsWith(tab.href)
+          const isActive = pathname.startsWith(tab.href)
           return (
             <Link
               key={tab.href}

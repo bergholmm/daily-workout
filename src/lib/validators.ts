@@ -37,3 +37,15 @@ export const updateProgramWorkoutSchema = z.object({
   content: z.array(workoutSectionSchema).min(1).optional(),
   videoUrl: z.string().url().nullable().optional(),
 })
+
+export const saveTrainingRecordSchema = z.object({
+  entries: z
+    .array(
+      z.object({
+        prompt: z.string().trim().min(1).max(255),
+        value: z.string().trim().max(1000),
+      }),
+    )
+    .min(1)
+    .max(20),
+})

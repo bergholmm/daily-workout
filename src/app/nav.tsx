@@ -7,7 +7,8 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 
 const links = [
-  { href: "/", label: "Today" },
+  { href: "/training", label: "Training" },
+  { href: "/wod", label: "Daily" },
   { href: "/programs", label: "Programs" },
 ]
 
@@ -18,7 +19,10 @@ export function Nav() {
     <nav className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex max-w-2xl items-center justify-between px-4 py-3 sm:px-6 lg:max-w-3xl">
         <div className="flex items-center gap-6">
-          <Link href="/" className="flex items-center gap-2 text-primary">
+          <Link
+            href="/training"
+            className="flex items-center gap-2 text-primary"
+          >
             <Dumbbell className="h-5 w-5" />
             <span className="text-sm font-bold tracking-wider uppercase">
               WOD
@@ -26,10 +30,7 @@ export function Nav() {
           </Link>
           <div className="hidden items-center gap-1 md:flex">
             {links.map((link) => {
-              const isActive =
-                link.href === "/"
-                  ? pathname === "/"
-                  : pathname.startsWith(link.href)
+              const isActive = pathname.startsWith(link.href)
               return (
                 <Link
                   key={link.href}

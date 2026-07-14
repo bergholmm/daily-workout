@@ -1,11 +1,12 @@
 "use client"
 
 import { CalendarX } from "lucide-react"
-import { type ReactNode, useEffect } from "react"
+import { useEffect } from "react"
 import { toast } from "sonner"
 
 import type { ProviderName } from "@/server/db/schema"
 
+import { LinkedText } from "@/components/linked-text"
 import {
   Empty,
   EmptyDescription,
@@ -22,39 +23,6 @@ import { getDateStr } from "@/lib/utils"
 type Props = {
   providerName: ProviderName
   date: Date | undefined
-}
-
-const LINK_RE = /\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g
-
-function renderLineWithLinks(line: string): ReactNode {
-  const parts: ReactNode[] = []
-  let lastIndex = 0
-
-  for (const match of line.matchAll(LINK_RE)) {
-    const [full, text, url] = match
-    const index = match.index!
-    if (index > lastIndex) {
-      parts.push(line.slice(lastIndex, index))
-    }
-    parts.push(
-      <a
-        key={index}
-        href={url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-primary underline decoration-primary/30 underline-offset-2 hover:decoration-primary/60"
-      >
-        {text}
-      </a>,
-    )
-    lastIndex = index + full!.length
-  }
-
-  if (lastIndex < line.length) {
-    parts.push(line.slice(lastIndex))
-  }
-
-  return parts.length > 0 ? parts : line
 }
 
 function WorkoutContent({ content }: { content: string[] }) {
@@ -84,13 +52,13 @@ function WorkoutContent({ content }: { content: string[] }) {
             if (j === 0 && section.length > 1) {
               return (
                 <p key={j} className="mb-1 text-sm font-semibold text-primary">
-                  {renderLineWithLinks(line)}
+                  <LinkedText text={line} />
                 </p>
               )
             }
             return (
               <p key={j} className="text-sm leading-relaxed text-foreground/80">
-                {renderLineWithLinks(line)}
+                <LinkedText text={line} />
               </p>
             )
           })}
