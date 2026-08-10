@@ -10,6 +10,7 @@ import { LinkedText } from "@/components/linked-text"
 import { Badge } from "@/components/ui/badge"
 import { WorkoutRecordForm } from "@/components/workout-record-form"
 
+import { getCapableSession } from "@/lib/capable-program"
 import type { PublicProgramWorkout, WorkoutSection } from "@/lib/types"
 
 type Props = {
@@ -88,6 +89,9 @@ function UtilitySection({
 }
 
 export function PublicProgramWorkoutCard({ workout }: Props) {
+  const session = workout.sessionNumber
+    ? getCapableSession(workout.sessionNumber)
+    : undefined
   const workoutSections = workout.content.filter(
     (section) => getSectionKind(section) === "workout",
   )
@@ -102,7 +106,7 @@ export function PublicProgramWorkoutCard({ workout }: Props) {
           {workout.weekNumber && <span>Week {workout.weekNumber}</span>}
           {workout.weekNumber && workout.sessionNumber && <span>·</span>}
           {workout.sessionNumber && (
-            <span>Session {workout.sessionNumber}</span>
+            <span>{session?.name ?? `Session ${workout.sessionNumber}`}</span>
           )}
         </div>
         <h2 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">

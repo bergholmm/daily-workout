@@ -1,6 +1,6 @@
 import "server-only"
 
-import { and, asc, desc, eq, lte, or } from "drizzle-orm"
+import { and, asc, eq, lte, or } from "drizzle-orm"
 
 import type { WorkoutSection } from "@/lib/types"
 
@@ -89,7 +89,57 @@ export async function listVisibleProgramWorkouts(
         ),
       ),
     )
-    .orderBy(desc(programWorkouts.date), asc(programWorkouts.id))
+    .orderBy(
+      asc(programWorkouts.weekNumber),
+      asc(programWorkouts.sessionNumber),
+      asc(programWorkouts.id),
+    )
+}
+
+export async function getVisiblePublicProgramWorkoutBySlot(
+  slug: string,
+  weekNumber: number,
+  sessionNumber: number,
+  now = new Date(),
+) {
+  const [workout] = await db
+    .select({
+      id: programWorkouts.id,
+      programId: programWorkouts.programId,
+      date: programWorkouts.date,
+      title: programWorkouts.title,
+      summary: programWorkouts.summary,
+      content: programWorkouts.content,
+      videoUrl: programWorkouts.videoUrl,
+      status: programWorkouts.status,
+      publishAt: programWorkouts.publishAt,
+      publicationKey: programWorkouts.publicationKey,
+      weekNumber: programWorkouts.weekNumber,
+      sessionNumber: programWorkouts.sessionNumber,
+      durationMinutes: programWorkouts.durationMinutes,
+      focus: programWorkouts.focus,
+      equipment: programWorkouts.equipment,
+    })
+    .from(programWorkouts)
+    .innerJoin(programs, eq(programWorkouts.programId, programs.id))
+    .where(
+      and(
+        eq(programs.slug, slug),
+        eq(programs.isPublic, true),
+        eq(programWorkouts.weekNumber, weekNumber),
+        eq(programWorkouts.sessionNumber, sessionNumber),
+        or(
+          eq(programWorkouts.status, "published"),
+          and(
+            eq(programWorkouts.status, "scheduled"),
+            lte(programWorkouts.publishAt, now),
+          ),
+        ),
+      ),
+    )
+    .limit(1)
+
+  return workout ?? null
 }
 
 export async function getProgramWorkoutsByDate(

@@ -55,6 +55,27 @@ export async function getTrainingRecord(userId: string, workoutId: number) {
   return record ?? null
 }
 
+export async function listRecordedWorkoutIds(
+  userId: string,
+  programId: number,
+) {
+  const records = await db
+    .select({ workoutId: trainingRecords.workoutId })
+    .from(trainingRecords)
+    .innerJoin(
+      programWorkouts,
+      eq(trainingRecords.workoutId, programWorkouts.id),
+    )
+    .where(
+      and(
+        eq(trainingRecords.userId, userId),
+        eq(programWorkouts.programId, programId),
+      ),
+    )
+
+  return records.map((record) => record.workoutId)
+}
+
 export async function saveTrainingRecord(
   userId: string,
   workoutId: number,
