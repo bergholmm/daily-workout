@@ -39,7 +39,12 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <ClerkProvider appearance={{ baseTheme: dark }} afterSignOutUrl="/sign-in" signInFallbackRedirectUrl="/" signUpFallbackRedirectUrl="/">
+    <ClerkProvider
+      appearance={{ baseTheme: dark }}
+      afterSignOutUrl="/sign-in"
+      signInFallbackRedirectUrl="/"
+      signUpFallbackRedirectUrl="/"
+    >
       <html
         lang="en"
         suppressHydrationWarning

@@ -1,19 +1,22 @@
 # Daily Workout
 
-The app combines a public self-paced CAPABLE training program with daily
+The app combines the public self-paced Built to Move program with daily
 PushJerk and Linchpin workout feeds.
 
-## CAPABLE
+## Built to Move
 
-The canonical 12-week, 36-session program lives in
-`data/capable-program.mjs`. Validate or synchronize it with:
+The nine workout definitions live in `data/built-to-move-program.mjs`. Each
+definition has four weekly prescriptions. A program run has 36 separately
+recordable sessions. Validate or synchronize the program with:
 
 ```bash
+pnpm program:audit
 pnpm program:seed --dry-run
 pnpm program:seed
 ```
 
-See `docs/capable-program.md` for the structure and programming rules.
+See [GitHub issue #1](https://github.com/bergholmm/daily-workout/issues/1) for
+the product specification and training rules.
 
 ## Development
 

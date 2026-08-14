@@ -13,7 +13,7 @@ import {
   varchar,
 } from "drizzle-orm/pg-core"
 
-import type { TrainingRecordEntry, WorkoutSection } from "@/lib/types"
+import type { SessionRecordEntry, WorkoutSection } from "@/lib/types"
 
 export const providerNameEnum = pgEnum("provider_name", [
   "pushjerk",
@@ -24,6 +24,12 @@ export const programWorkoutStatusEnum = pgEnum("program_workout_status", [
   "draft",
   "scheduled",
   "published",
+])
+
+export const programRunStatusEnum = pgEnum("program_run_status", [
+  "active",
+  "completed",
+  "abandoned",
 ])
 
 export type ProviderName = (typeof providerNameEnum.enumValues)[number]
@@ -86,8 +92,9 @@ export const programWorkouts = pgTable(
     status: programWorkoutStatusEnum("status").notNull().default("draft"),
     publishAt: timestamp("publish_at", { withTimezone: true }),
     publicationKey: varchar("publication_key", { length: 255 }),
+    phaseNumber: integer("phase_number"),
     weekNumber: integer("week_number"),
-    sessionNumber: integer("session_number"),
+    emphasisNumber: integer("session_number"),
     durationMinutes: integer("duration_minutes"),
     focus: text("focus")
       .array()
@@ -112,16 +119,52 @@ export const programWorkouts = pgTable(
   ],
 )
 
-export const trainingRecords = pgTable(
+export const programRuns = pgTable(
+  "program_runs",
+  {
+    id: serial("id").primaryKey(),
+    programId: integer("program_id")
+      .notNull()
+      .references(() => programs.id, { onDelete: "cascade" }),
+    userId: varchar("user_id", { length: 255 }).notNull(),
+    status: programRunStatusEnum("status").notNull().default("active"),
+    startedAt: timestamp("started_at", { withTimezone: true })
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    endedAt: timestamp("ended_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+  },
+  (table) => [
+    index("program_runs_user_program_started_idx").on(
+      table.userId,
+      table.programId,
+      table.startedAt,
+    ),
+    uniqueIndex("program_runs_active_user_program_idx")
+      .on(table.userId, table.programId)
+      .where(sql`${table.status} = 'active'`),
+  ],
+)
+
+export const sessionRecords = pgTable(
   "training_records",
   {
     id: serial("id").primaryKey(),
+    programRunId: integer("program_run_id")
+      .notNull()
+      .references(() => programRuns.id, { onDelete: "cascade" }),
     workoutId: integer("workout_id")
       .notNull()
       .references(() => programWorkouts.id, { onDelete: "cascade" }),
     userId: varchar("user_id", { length: 255 }).notNull(),
+    weekNumber: integer("week_number").notNull(),
     entries: jsonb("entries")
-      .$type<TrainingRecordEntry[]>()
+      .$type<SessionRecordEntry[]>()
       .notNull()
       .default([]),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -132,9 +175,10 @@ export const trainingRecords = pgTable(
       .notNull(),
   },
   (table) => [
-    uniqueIndex("training_records_user_workout_idx").on(
-      table.userId,
+    uniqueIndex("training_records_run_workout_week_idx").on(
+      table.programRunId,
       table.workoutId,
+      table.weekNumber,
     ),
     index("training_records_user_updated_idx").on(
       table.userId,

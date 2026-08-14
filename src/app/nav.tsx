@@ -25,7 +25,7 @@ export function Nav() {
           >
             <Dumbbell className="h-5 w-5" />
             <span className="text-sm font-bold tracking-wider uppercase">
-              CAPABLE
+              Built to Move
             </span>
           </Link>
           <div className="hidden items-center gap-1 md:flex">

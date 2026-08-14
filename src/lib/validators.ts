@@ -38,11 +38,11 @@ export const updateProgramWorkoutSchema = z.object({
   videoUrl: z.string().url().nullable().optional(),
 })
 
-export const saveTrainingRecordSchema = z.object({
+export const saveSessionRecordSchema = z.object({
   entries: z
     .array(
       z.object({
-        prompt: z.string().trim().min(1).max(255),
+        fieldId: z.string().trim().min(1).max(100),
         value: z.string().trim().max(1000),
       }),
     )

@@ -41,19 +41,26 @@ export function ProgramWorkoutCard({ title, content, videoUrl }: Props) {
         <h4 className="mb-3 text-sm font-semibold text-primary">{title}</h4>
       )}
       <div className="space-y-3">
-        {content.map((section, i) => (
-          <div key={i}>
-            <p className="mb-1 text-sm font-semibold text-primary">
-              {section.title}
-            </p>
-            {section.exercises.map((exercise, j) => (
-              <p key={j} className="text-sm leading-relaxed text-foreground/80">
-                {exercise}
+        {content.map((section, i) => {
+          if (!("exercises" in section)) return null
+
+          return (
+            <div key={i}>
+              <p className="mb-1 text-sm font-semibold text-primary">
+                {section.title}
               </p>
-            ))}
-            {section.videoUrl && <CollapsibleVideo url={section.videoUrl} />}
-          </div>
-        ))}
+              {section.exercises.map((exercise, j) => (
+                <p
+                  key={j}
+                  className="text-sm leading-relaxed text-foreground/80"
+                >
+                  {exercise}
+                </p>
+              ))}
+              {section.videoUrl && <CollapsibleVideo url={section.videoUrl} />}
+            </div>
+          )
+        })}
       </div>
       {videoUrl && <CollapsibleVideo url={videoUrl} />}
     </div>

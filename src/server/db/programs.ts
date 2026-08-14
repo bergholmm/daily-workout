@@ -90,8 +90,8 @@ export async function listVisibleProgramWorkouts(
       ),
     )
     .orderBy(
-      asc(programWorkouts.weekNumber),
-      asc(programWorkouts.sessionNumber),
+      asc(programWorkouts.phaseNumber),
+      asc(programWorkouts.emphasisNumber),
       asc(programWorkouts.id),
     )
 }
@@ -99,9 +99,10 @@ export async function listVisibleProgramWorkouts(
 export async function getVisiblePublicProgramWorkoutBySlot(
   slug: string,
   weekNumber: number,
-  sessionNumber: number,
+  emphasisNumber: number,
   now = new Date(),
 ) {
+  const phaseNumber = Math.ceil(weekNumber / 4)
   const [workout] = await db
     .select({
       id: programWorkouts.id,
@@ -114,8 +115,9 @@ export async function getVisiblePublicProgramWorkoutBySlot(
       status: programWorkouts.status,
       publishAt: programWorkouts.publishAt,
       publicationKey: programWorkouts.publicationKey,
+      phaseNumber: programWorkouts.phaseNumber,
       weekNumber: programWorkouts.weekNumber,
-      sessionNumber: programWorkouts.sessionNumber,
+      emphasisNumber: programWorkouts.emphasisNumber,
       durationMinutes: programWorkouts.durationMinutes,
       focus: programWorkouts.focus,
       equipment: programWorkouts.equipment,
@@ -126,8 +128,8 @@ export async function getVisiblePublicProgramWorkoutBySlot(
       and(
         eq(programs.slug, slug),
         eq(programs.isPublic, true),
-        eq(programWorkouts.weekNumber, weekNumber),
-        eq(programWorkouts.sessionNumber, sessionNumber),
+        eq(programWorkouts.phaseNumber, phaseNumber),
+        eq(programWorkouts.emphasisNumber, emphasisNumber),
         or(
           eq(programWorkouts.status, "published"),
           and(

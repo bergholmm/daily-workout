@@ -30,7 +30,7 @@ type ProgramWorkout = {
   publishAt: string | null
   publicationKey: string | null
   weekNumber: number | null
-  sessionNumber: number | null
+  emphasisNumber: number | null
   durationMinutes: number | null
   focus: string[]
   equipment: string[]

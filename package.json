@@ -14,7 +14,8 @@
     "test": "vitest run",
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",
-    "program:seed": "node scripts/seed-capable-program.mjs"
+    "program:audit": "node scripts/audit-built-to-move-program.mjs",
+    "program:seed": "node scripts/seed-built-to-move-program.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.3.0",

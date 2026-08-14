@@ -45,12 +45,14 @@ export function WorkoutForm({
   )
   const [title, setTitle] = useState(initial?.title ?? "")
   const [sections, setSections] = useState<SectionInput[]>(
-    initial?.content.map((s) => ({
-      title: s.title,
-      exercises: s.exercises.join("\n"),
-      videoUrl: s.videoUrl ?? "",
-      showVideo: !!s.videoUrl,
-    })) ?? [{ title: "", exercises: "", videoUrl: "", showVideo: false }],
+    initial?.content
+      .filter((section) => "exercises" in section)
+      .map((s) => ({
+        title: s.title,
+        exercises: s.exercises.join("\n"),
+        videoUrl: s.videoUrl ?? "",
+        showVideo: !!s.videoUrl,
+      })) ?? [{ title: "", exercises: "", videoUrl: "", showVideo: false }],
   )
   const [videoUrl, setVideoUrl] = useState(initial?.videoUrl ?? "")
 

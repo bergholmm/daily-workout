@@ -14,8 +14,9 @@ import {
   getPublicProgramBySlug,
   listVisibleProgramWorkouts,
 } from "@/server/db/programs"
-import { listRecordedWorkoutIds } from "@/server/db/training-records"
+import { listRecordedSessions } from "@/server/db/session-records"
 
+import { ProgramRunControl } from "@/components/program-run-control"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -27,41 +28,61 @@ import {
 } from "@/components/ui/empty"
 
 import {
-  CAPABLE_PHASES,
-  CAPABLE_PROGRAM_SLUG,
-  CAPABLE_SESSIONS,
-  getCapableWorkoutHref,
-} from "@/lib/capable-program"
+  BUILT_TO_MOVE_EMPHASES,
+  BUILT_TO_MOVE_LEVELS,
+  BUILT_TO_MOVE_PROGRAM_SLUG,
+  buildBuiltToMoveProgress,
+  getBuiltToMoveDefinitionsForLevel,
+  getBuiltToMoveWorkoutHref,
+  selectBuiltToMoveView,
+} from "@/lib/built-to-move-program"
 import type { PublicProgramWorkout } from "@/lib/types"
 
 export const dynamic = "force-dynamic"
 
 export const metadata: Metadata = {
-  title: "CAPABLE · Strength, Flexibility & Longevity",
+  title: "Built to Move · Strength, Flexibility & Longevity",
   description:
-    "A self-paced 12-week program built around Lower, Upper, and Conditioning sessions.",
+    "A self-paced 12-week program for bodyweight skill, useful strength, flexibility, and long-term capacity.",
+}
+
+type Props = {
+  searchParams: Promise<{ level?: string; week?: string }>
+}
+
+function sessionKey(workoutId: number, weekNumber: number) {
+  return `${workoutId}:${weekNumber}`
+}
+
+function parseInteger(value: string | undefined) {
+  if (!value) return null
+  const parsed = Number(value)
+  return Number.isInteger(parsed) ? parsed : null
+}
+
+function selectionHref(levelNumber: number, weekNumber: number) {
+  return `/training?level=${levelNumber}&week=${weekNumber}`
 }
 
 function WorkoutLink({
   workout,
-  completed,
+  weekNumber,
+  recorded,
   isNext,
 }: {
   workout: PublicProgramWorkout
-  completed: boolean
+  weekNumber: number
+  recorded: boolean
   isNext: boolean
 }) {
-  const session = CAPABLE_SESSIONS.find(
-    (item) => item.number === workout.sessionNumber,
+  const emphasis = BUILT_TO_MOVE_EMPHASES.find(
+    (item) => item.number === workout.emphasisNumber,
   )
 
   return (
     <Link
-      href={getCapableWorkoutHref(
-        workout.weekNumber ?? 1,
-        workout.sessionNumber ?? 1,
-      )}
-      className={`group flex min-h-40 flex-col border p-4 transition-colors ${
+      href={getBuiltToMoveWorkoutHref(weekNumber, workout.emphasisNumber ?? 1)}
+      className={`group flex min-h-44 flex-col border p-5 transition-colors ${
         isNext
           ? "border-primary/50 bg-primary/[0.07] hover:bg-primary/[0.1]"
           : "border-border/50 bg-card/40 hover:border-primary/30 hover:bg-card/70"
@@ -69,9 +90,9 @@ function WorkoutLink({
     >
       <div className="flex items-center justify-between gap-3">
         <p className="text-[11px] font-semibold tracking-[0.15em] uppercase text-primary">
-          {session?.name ?? `Session ${workout.sessionNumber}`}
+          {emphasis?.name ?? `Workout ${workout.emphasisNumber}`}
         </p>
-        {completed ? (
+        {recorded ? (
           <Badge variant="secondary">
             <Check data-icon="inline-start" />
             Recorded
@@ -81,14 +102,14 @@ function WorkoutLink({
         ) : null}
       </div>
 
-      <h4 className="mt-3 text-sm font-semibold leading-snug">
+      <h3 className="mt-3 text-base font-semibold leading-snug">
         {workout.title}
-      </h4>
+      </h3>
       <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
         {workout.summary}
       </p>
 
-      <div className="mt-auto flex items-center justify-between gap-3 pt-4 text-xs text-muted-foreground">
+      <div className="mt-auto flex items-center justify-between gap-3 pt-5 text-xs text-muted-foreground">
         <span className="flex items-center gap-1.5">
           <Clock3 className="h-3.5 w-3.5" />
           {workout.durationMinutes} min
@@ -102,10 +123,11 @@ function WorkoutLink({
   )
 }
 
-export default async function TrainingPage() {
-  const [{ userId }, program] = await Promise.all([
+export default async function TrainingPage({ searchParams }: Props) {
+  const [{ userId }, program, requested] = await Promise.all([
     auth(),
-    getPublicProgramBySlug(CAPABLE_PROGRAM_SLUG),
+    getPublicProgramBySlug(BUILT_TO_MOVE_PROGRAM_SLUG),
+    searchParams,
   ])
 
   if (!program) {
@@ -116,9 +138,9 @@ export default async function TrainingPage() {
             <EmptyMedia variant="icon">
               <Dumbbell />
             </EmptyMedia>
-            <EmptyTitle>CAPABLE is not loaded yet</EmptyTitle>
+            <EmptyTitle>Built to Move is not loaded yet</EmptyTitle>
             <EmptyDescription>
-              Run the program seed to load all 36 self-paced sessions.
+              Run the program seed to load all nine workout definitions.
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
@@ -126,45 +148,68 @@ export default async function TrainingPage() {
     )
   }
 
-  const [workouts, recordedWorkoutIds] = await Promise.all([
+  const [workouts, progress] = await Promise.all([
     listVisibleProgramWorkouts(program.id),
-    userId ? listRecordedWorkoutIds(userId, program.id) : Promise.resolve([]),
+    userId
+      ? listRecordedSessions(userId, program.id)
+      : Promise.resolve({ run: null, records: [] }),
   ])
-  const completed = new Set(recordedWorkoutIds)
-  const nextWorkout = workouts.find((workout) => !completed.has(workout.id))
-  const completedCount = workouts.filter((workout) =>
-    completed.has(workout.id),
-  ).length
+  const trainingProgress = buildBuiltToMoveProgress(workouts, progress.records)
+  const completed = trainingProgress.completedKeys
+  const nextSlot = trainingProgress.nextSlot
+  const fallbackSlot = nextSlot ?? trainingProgress.slots.at(-1)
+  const selection = selectBuiltToMoveView(
+    parseInteger(requested.level),
+    parseInteger(requested.week),
+    fallbackSlot?.weekNumber ?? null,
+  )
+  const selectedLevel = selection.level
+  const selectedWeek = selection.weekNumber
+  const selectedWorkouts = getBuiltToMoveDefinitionsForLevel(
+    workouts,
+    selectedLevel.number,
+  )
+  const completedCount = trainingProgress.completedCount
+  const weekCompletedCount =
+    trainingProgress.weekCompletedCounts[selectedWeek] ?? 0
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-10 px-4 pb-24 pt-8 sm:px-6 md:pb-16">
+    <div className="mx-auto flex max-w-5xl flex-col gap-8 px-4 pb-24 pt-8 sm:px-6 md:pb-16">
       <header className="border border-primary/25 bg-primary/[0.05] p-6 sm:p-8">
         <p className="text-xs font-semibold tracking-[0.2em] uppercase text-primary">
-          Strength · Flexibility · Longevity
+          Longevity · Flexibility · Strength
         </p>
         <div className="mt-2 flex flex-wrap items-end justify-between gap-5">
           <div className="max-w-2xl">
             <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
-              CAPABLE
+              Built to Move
             </h1>
             <p className="mt-3 text-sm leading-relaxed text-foreground/70 sm:text-base">
               {program.description}
             </p>
+            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+              This exact cycle is an evidence-informed pilot. Use the listed
+              quality checks and fallbacks. Skill results are not guaranteed.
+            </p>
           </div>
-          {nextWorkout && (
+          {fallbackSlot && (
             <Button
               size="lg"
               nativeButton={false}
               render={
                 <Link
-                  href={getCapableWorkoutHref(
-                    nextWorkout.weekNumber ?? 1,
-                    nextWorkout.sessionNumber ?? 1,
+                  href={getBuiltToMoveWorkoutHref(
+                    fallbackSlot.weekNumber,
+                    fallbackSlot.emphasisNumber,
                   )}
                 />
               }
             >
-              {completedCount > 0 ? "Continue program" : "Start Week 1"}
+              {completedCount === 0
+                ? "Start Week 1"
+                : nextSlot
+                  ? "Continue program"
+                  : "Review program"}
               <ArrowRight />
             </Button>
           )}
@@ -172,11 +217,10 @@ export default async function TrainingPage() {
 
         <div className="mt-6 flex flex-wrap gap-2">
           <Badge variant="outline">
-            <Layers3 data-icon="inline-start" />
-            12 weeks
+            <Layers3 data-icon="inline-start" />3 levels · 12 weeks
           </Badge>
           <Badge variant="outline">
-            <Dumbbell data-icon="inline-start" />3 sessions per week
+            <Dumbbell data-icon="inline-start" />3 workouts per week
           </Badge>
           <Badge variant="outline">
             <Gauge data-icon="inline-start" />
@@ -185,95 +229,121 @@ export default async function TrainingPage() {
           {userId && (
             <Badge variant="secondary">
               <Check data-icon="inline-start" />
-              {completedCount} of {workouts.length} recorded
+              {completedCount} of 36 recorded
             </Badge>
           )}
         </div>
+        {userId && completedCount > 0 && (
+          <div className="mt-3">
+            <ProgramRunControl completed={trainingProgress.isComplete} />
+          </div>
+        )}
       </header>
 
-      <section className="grid gap-px border border-border/50 bg-border/50 sm:grid-cols-3">
-        {CAPABLE_SESSIONS.map((session) => (
-          <div key={session.number} className="bg-background p-4">
-            <p className="text-[10px] font-semibold tracking-[0.16em] uppercase text-muted-foreground">
-              Suggested {session.rhythm}
-            </p>
-            <h2 className="mt-1 text-base font-semibold text-primary">
-              {session.name}
-            </h2>
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              {session.number === 1
-                ? "Heavy lower-body strength and active hip, hamstring, and adductor range."
-                : session.number === 2
-                  ? "Handstand, bar muscle-up, front lever, and balanced upper-body strength."
-                  : "Sustainable full-body capacity, resilience, carries, and locomotion."}
-            </p>
-          </div>
-        ))}
-      </section>
-
-      <nav aria-label="Program phases" className="flex flex-wrap gap-2">
-        {CAPABLE_PHASES.map((phase) => (
+      <nav aria-label="Program levels" className="grid gap-2 sm:grid-cols-3">
+        {BUILT_TO_MOVE_LEVELS.map((level) => (
           <Button
-            key={phase.number}
-            variant="outline"
-            size="sm"
+            key={level.number}
+            variant={
+              level.number === selectedLevel.number ? "default" : "outline"
+            }
             nativeButton={false}
-            render={<Link href={`#phase-${phase.number}`} />}
+            render={<Link href={selectionHref(level.number, level.weeks[0])} />}
           >
-            Phase {phase.number} · {phase.name}
+            Level {level.number} · {level.name}
           </Button>
         ))}
       </nav>
 
-      {CAPABLE_PHASES.map((phase) => (
-        <section
-          key={phase.number}
-          id={`phase-${phase.number}`}
-          className="scroll-mt-24 space-y-6"
+      <section className="space-y-5">
+        <div className="border-l-2 border-primary pl-4">
+          <p className="text-xs font-semibold tracking-[0.16em] uppercase text-primary">
+            Level {selectedLevel.number} · Weeks {selectedLevel.weeks[0]}–
+            {selectedLevel.weeks.at(-1)}
+          </p>
+          <h2 className="mt-1 text-2xl font-bold tracking-tight">
+            {selectedLevel.name}
+          </h2>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+            {selectedLevel.description}
+          </p>
+        </div>
+
+        <nav
+          aria-label={`Weeks in Level ${selectedLevel.number}`}
+          className="grid grid-cols-4 gap-2"
         >
-          <div className="border-l-2 border-primary pl-4">
-            <p className="text-xs font-semibold tracking-[0.16em] uppercase text-primary">
-              Phase {phase.number} · Weeks {phase.weeks[0]}–{phase.weeks.at(-1)}
-            </p>
-            <h2 className="mt-1 text-2xl font-bold tracking-tight">
-              {phase.name}
-            </h2>
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-              {phase.description}
-            </p>
-          </div>
+          {selectedLevel.weeks.map((weekNumber) => {
+            const recordedCount =
+              trainingProgress.weekCompletedCounts[weekNumber] ?? 0
+            return (
+              <Button
+                key={weekNumber}
+                variant={weekNumber === selectedWeek ? "default" : "outline"}
+                nativeButton={false}
+                render={
+                  <Link
+                    href={selectionHref(selectedLevel.number, weekNumber)}
+                  />
+                }
+              >
+                {recordedCount === 3 && <Check />}
+                Week {weekNumber}
+              </Button>
+            )
+          })}
+        </nav>
 
-          <div className="space-y-7">
-            {phase.weeks.map((weekNumber) => {
-              const weekWorkouts = workouts.filter(
-                (workout) => workout.weekNumber === weekNumber,
-              )
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-sm font-semibold">Week {selectedWeek}</h3>
+          <p className="text-xs text-muted-foreground">
+            {weekCompletedCount} of 3 recorded
+          </p>
+        </div>
 
-              return (
-                <div key={weekNumber} className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <h3 className="text-sm font-semibold">Week {weekNumber}</h3>
-                    {weekNumber % 4 === 0 && (
-                      <Badge variant="outline">Consolidate</Badge>
-                    )}
-                    <span className="h-px flex-1 bg-border/50" />
-                  </div>
-                  <div className="grid gap-3 md:grid-cols-3">
-                    {weekWorkouts.map((workout) => (
-                      <WorkoutLink
-                        key={workout.id}
-                        workout={workout}
-                        completed={completed.has(workout.id)}
-                        isNext={workout.id === nextWorkout?.id}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </section>
-      ))}
+        <div className="grid gap-3 md:grid-cols-3">
+          {BUILT_TO_MOVE_EMPHASES.map((emphasis) => {
+            const workout = selectedWorkouts.find(
+              (item) => item.emphasisNumber === emphasis.number,
+            )
+            if (!workout) return null
+            return (
+              <WorkoutLink
+                key={emphasis.number}
+                workout={workout}
+                weekNumber={selectedWeek}
+                recorded={completed.has(sessionKey(workout.id, selectedWeek))}
+                isNext={
+                  nextSlot?.workout.id === workout.id &&
+                  nextSlot.weekNumber === selectedWeek
+                }
+              />
+            )
+          })}
+        </div>
+      </section>
+
+      <aside className="grid gap-px border border-border/50 bg-border/50 sm:grid-cols-2">
+        <div className="bg-background p-4">
+          <p className="text-[10px] font-semibold tracking-[0.16em] uppercase text-primary">
+            Optional skill practice
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+            Add 5–10 minutes of fresh handstand practice on one rest day when
+            your wrists and shoulders feel ready.
+          </p>
+        </div>
+        <div className="bg-background p-4">
+          <p className="text-[10px] font-semibold tracking-[0.16em] uppercase text-primary">
+            Supplemental aerobic work
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+            Easy running, cycling, or brisk walking can supplement the cycle.
+            You can add an occasional Norwegian 4 × 4 only when recovery is
+            good. It does not count toward program completion.
+          </p>
+        </div>
+      </aside>
     </div>
   )
 }

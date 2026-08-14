@@ -1,116 +1,180 @@
 import {
   Clock3,
   Dumbbell,
+  ExternalLink,
   NotebookPen,
-  SlidersHorizontal,
   Target,
 } from "lucide-react"
 
 import { LinkedText } from "@/components/linked-text"
+import { SessionRecordForm } from "@/components/session-record-form"
 import { Badge } from "@/components/ui/badge"
-import { WorkoutRecordForm } from "@/components/workout-record-form"
 
-import { getCapableSession } from "@/lib/capable-program"
-import type { PublicProgramWorkout, WorkoutSection } from "@/lib/types"
+import {
+  getBuiltToMoveEmphasis,
+  getMovementSearchUrl,
+} from "@/lib/built-to-move-program"
+import type {
+  LegacyWorkoutSection,
+  ResolvedPublicProgramWorkout,
+  ResolvedWorkoutSection,
+  SessionRecordSection,
+} from "@/lib/types"
 
 type Props = {
-  workout: PublicProgramWorkout
+  workout: ResolvedPublicProgramWorkout
+  weekNumber: number
 }
 
-function getSectionKind(section: WorkoutSection) {
-  const title = section.title.trim().toLowerCase()
-  if (title.startsWith("scaling")) return "scaling"
-  if (title.startsWith("record")) return "record"
-  return "workout"
+function isResolvedSection(
+  section: ResolvedPublicProgramWorkout["content"][number],
+): section is ResolvedWorkoutSection {
+  return "movements" in section
 }
 
-function UtilitySection({
+function isRecordSection(
+  section: ResolvedPublicProgramWorkout["content"][number],
+): section is SessionRecordSection {
+  return "kind" in section && section.kind === "record" && "fields" in section
+}
+
+function isLegacySection(
+  section: ResolvedPublicProgramWorkout["content"][number],
+): section is LegacyWorkoutSection {
+  return "exercises" in section
+}
+
+function StructuredSection({
   section,
-  kind,
-  workoutId,
+  index,
 }: {
-  section: WorkoutSection
-  kind: "scaling" | "record"
-  workoutId: number
+  section: ResolvedWorkoutSection
+  index: number
 }) {
-  const isScaling = kind === "scaling"
-  const Icon = isScaling ? SlidersHorizontal : NotebookPen
-
   return (
-    <aside
-      className={
-        isScaling
-          ? "border border-primary/20 bg-primary/[0.04] p-4 sm:p-5"
-          : "border border-border/50 bg-muted/15 p-4 sm:p-5"
-      }
-    >
+    <section className="border border-border/50 bg-card/50 px-4 py-4 sm:px-5">
       <div className="flex items-start gap-3">
-        <span
-          className={
-            isScaling
-              ? "flex h-8 w-8 shrink-0 items-center justify-center bg-primary/10 text-primary"
-              : "flex h-8 w-8 shrink-0 items-center justify-center bg-muted text-muted-foreground"
-          }
-        >
-          <Icon className="h-4 w-4" />
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center bg-primary/10 text-[11px] font-bold text-primary">
+          {String(index + 1).padStart(2, "0")}
         </span>
-        <div>
-          <p className="text-[10px] font-semibold tracking-[0.16em] uppercase text-muted-foreground">
-            {isScaling ? "Adjust as needed" : "After training"}
-          </p>
-          <h3
-            className={
-              isScaling
-                ? "mt-0.5 text-sm font-semibold text-primary"
-                : "mt-0.5 text-sm font-semibold"
-            }
-          >
+        <div className="min-w-0 flex-1">
+          <h3 className="pt-0.5 text-sm font-semibold text-primary">
             {section.title}
           </h3>
+          {section.prescription && (
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              {section.prescription}
+            </p>
+          )}
         </div>
       </div>
 
-      {isScaling ? (
-        <ul className="mt-4 space-y-2 text-sm leading-relaxed text-foreground/75">
-          {section.exercises.map((exercise, index) => (
-            <li key={`${exercise}-${index}`} className="flex gap-2.5">
-              <span className="mt-[0.15em] text-muted-foreground/60">—</span>
-              <span>
-                <LinkedText text={exercise} />
-              </span>
-            </li>
+      <div className="mt-4 divide-y divide-border/40 pl-9">
+        {section.movements.map((movement) => (
+          <div key={movement.id} className="py-3 first:pt-0 last:pb-0">
+            <a
+              href={getMovementSearchUrl(movement.name)}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-foreground underline decoration-primary/60 underline-offset-4 transition-colors hover:text-primary"
+            >
+              {movement.name}
+              <ExternalLink className="h-3 w-3" aria-hidden="true" />
+              <span className="sr-only">Search YouTube</span>
+            </a>
+            <p className="mt-1 text-sm leading-relaxed text-foreground/80">
+              {movement.prescription}
+            </p>
+            {movement.notes?.map((note) => (
+              <p
+                key={note}
+                className="mt-1 text-xs leading-relaxed text-muted-foreground"
+              >
+                {note}
+              </p>
+            ))}
+            {movement.scaling && movement.scaling.length > 0 && (
+              <div className="mt-2 border-l border-primary/40 pl-3">
+                <p className="text-[10px] font-semibold tracking-[0.14em] uppercase text-primary">
+                  Adjust
+                </p>
+                {movement.scaling.map((instruction) => (
+                  <p
+                    key={instruction}
+                    className="mt-1 text-xs leading-relaxed text-muted-foreground"
+                  >
+                    {instruction}
+                  </p>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {section.notes && section.notes.length > 0 && (
+        <div className="mt-4 border-t border-border/40 pt-3 pl-9 text-xs leading-relaxed text-muted-foreground">
+          {section.notes.map((note) => (
+            <p key={note}>{note}</p>
           ))}
-        </ul>
-      ) : (
-        <WorkoutRecordForm workoutId={workoutId} prompts={section.exercises} />
+        </div>
       )}
-    </aside>
+    </section>
   )
 }
 
-export function PublicProgramWorkoutCard({ workout }: Props) {
-  const session = workout.sessionNumber
-    ? getCapableSession(workout.sessionNumber)
+function LegacySection({
+  section,
+  index,
+}: {
+  section: LegacyWorkoutSection
+  index: number
+}) {
+  return (
+    <section className="border border-border/50 bg-card/50 px-4 py-4 sm:px-5">
+      <div className="mb-3 flex items-start gap-3">
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center bg-primary/10 text-[11px] font-bold text-primary">
+          {String(index + 1).padStart(2, "0")}
+        </span>
+        <h3 className="pt-0.5 text-sm font-semibold text-primary">
+          {section.title}
+        </h3>
+      </div>
+      <div className="space-y-1.5 pl-9">
+        {section.exercises.map((exercise) => (
+          <p
+            key={exercise}
+            className="text-sm leading-relaxed text-foreground/80"
+          >
+            <LinkedText text={exercise} />
+          </p>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+export function PublicProgramWorkoutCard({ workout, weekNumber }: Props) {
+  const emphasis = workout.emphasisNumber
+    ? getBuiltToMoveEmphasis(workout.emphasisNumber)
     : undefined
-  const workoutSections = workout.content.filter(
-    (section) => getSectionKind(section) === "workout",
+  const trainingSections = workout.content.filter(
+    (section) => isResolvedSection(section) || isLegacySection(section),
   )
-  const utilitySections = workout.content.filter(
-    (section) => getSectionKind(section) !== "workout",
-  )
+  const recordSection = workout.content.find(isRecordSection)
 
   return (
     <article className="space-y-5">
       <div className="border border-primary/25 bg-primary/5 p-5 sm:p-6">
         <div className="flex flex-wrap items-center gap-2 text-xs font-medium tracking-wider uppercase text-primary">
-          {workout.weekNumber && <span>Week {workout.weekNumber}</span>}
-          {workout.weekNumber && workout.sessionNumber && <span>·</span>}
-          {workout.sessionNumber && (
-            <span>{session?.name ?? `Session ${workout.sessionNumber}`}</span>
+          <span>Week {weekNumber}</span>
+          {workout.emphasisNumber && <span>·</span>}
+          {workout.emphasisNumber && (
+            <span>{emphasis?.name ?? `Workout ${workout.emphasisNumber}`}</span>
           )}
         </div>
         <h2 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">
-          {workout.title ?? "Daily training"}
+          {workout.title ?? "Training session"}
         </h2>
         {workout.summary && (
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-foreground/70">
@@ -142,49 +206,42 @@ export function PublicProgramWorkoutCard({ workout }: Props) {
       </div>
 
       <div className="space-y-3">
-        {workoutSections.map((section, index) => (
-          <section
-            key={`${section.title}-${index}`}
-            className="border border-border/50 bg-card/50 px-4 py-4 sm:px-5"
-          >
-            <div className="mb-3 flex items-start gap-3">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center bg-primary/10 text-[11px] font-bold text-primary">
-                {String(index + 1).padStart(2, "0")}
-              </span>
-              <h3 className="pt-0.5 text-sm font-semibold text-primary">
-                {section.title}
-              </h3>
-            </div>
-            <div className="space-y-1.5 pl-9">
-              {section.exercises.map((exercise, exerciseIndex) => (
-                <p
-                  key={`${exercise}-${exerciseIndex}`}
-                  className="text-sm leading-relaxed text-foreground/80"
-                >
-                  <LinkedText text={exercise} />
-                </p>
-              ))}
-            </div>
-          </section>
-        ))}
+        {trainingSections.map((section, index) =>
+          isResolvedSection(section) ? (
+            <StructuredSection
+              key={section.id}
+              section={section}
+              index={index}
+            />
+          ) : (
+            <LegacySection
+              key={`${section.title}-${index}`}
+              section={section}
+              index={index}
+            />
+          ),
+        )}
       </div>
 
-      {utilitySections.length > 0 && (
-        <div className="grid gap-3 border-t border-border/50 pt-5 sm:grid-cols-2">
-          {utilitySections.map((section, index) => {
-            const kind = getSectionKind(section)
-            if (kind === "workout") return null
-
-            return (
-              <UtilitySection
-                key={`${section.title}-${index}`}
-                section={section}
-                kind={kind}
-                workoutId={workout.id}
-              />
-            )
-          })}
-        </div>
+      {recordSection && (
+        <aside className="border border-border/50 bg-muted/15 p-4 sm:p-5">
+          <div className="flex items-start gap-3">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center bg-muted text-muted-foreground">
+              <NotebookPen className="h-4 w-4" />
+            </span>
+            <div>
+              <p className="text-[10px] font-semibold tracking-[0.16em] uppercase text-muted-foreground">
+                After training
+              </p>
+              <h3 className="mt-0.5 text-sm font-semibold">Record results</h3>
+            </div>
+          </div>
+          <SessionRecordForm
+            workoutId={workout.id}
+            weekNumber={weekNumber}
+            fields={recordSection.fields}
+          />
+        </aside>
       )}
     </article>
   )

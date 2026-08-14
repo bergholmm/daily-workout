@@ -9,71 +9,83 @@ import useSWR from "swr"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
+import { findPreviousSessionValue } from "@/lib/built-to-move-program"
 import fetcher from "@/lib/fetcher"
-import type { TrainingRecord } from "@/lib/types"
+import type { SessionRecord, SessionRecordField } from "@/lib/types"
 
 type Props = {
   workoutId: number
-  prompts: string[]
+  weekNumber: number
+  fields: SessionRecordField[]
 }
 
-type RecordFieldsProps = Props & {
-  record: TrainingRecord | null
-  onSaved: (record: TrainingRecord) => Promise<unknown>
+type RecordResponse = {
+  record: SessionRecord | null
+  previousRecord: SessionRecord | null
 }
+
+type RecordFieldsProps = Props &
+  RecordResponse & {
+    onSaved: (record: SessionRecord) => Promise<unknown>
+  }
 
 function RecordFields({
   workoutId,
-  prompts,
+  weekNumber,
+  fields,
   record,
+  previousRecord,
   onSaved,
 }: RecordFieldsProps) {
   const savedEntries = new Map(
-    record?.entries.map((entry) => [entry.prompt, entry.value]) ?? [],
+    record?.entries.map((entry) => [entry.fieldId, entry.value]) ?? [],
   )
   const [values, setValues] = useState<Record<string, string>>(() =>
     Object.fromEntries(
-      prompts.map((prompt) => [prompt, savedEntries.get(prompt) ?? ""]),
+      fields.map((field) => [field.id, savedEntries.get(field.id) ?? ""]),
     ),
   )
   const [isSaving, setIsSaving] = useState(false)
 
-  const isDirty = prompts.some(
-    (prompt) => values[prompt] !== (savedEntries.get(prompt) ?? ""),
+  const isDirty = fields.some(
+    (field) => values[field.id] !== (savedEntries.get(field.id) ?? ""),
   )
-  const hasValue = prompts.some((prompt) => values[prompt]?.trim())
+  const hasValue = fields.some((field) => values[field.id]?.trim())
   const canSave = isDirty && (record !== null || hasValue)
 
   async function saveRecord() {
     setIsSaving(true)
 
     try {
-      const response = await fetch(`/api/training-records/${workoutId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          entries: prompts.map((prompt) => ({
-            prompt,
-            value: values[prompt] ?? "",
-          })),
-        }),
-      })
+      const response = await fetch(
+        `/api/session-records/${workoutId}?week=${weekNumber}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            entries: fields.map((field) => ({
+              fieldId: field.id,
+              value: values[field.id] ?? "",
+            })),
+          }),
+        },
+      )
 
       if (!response.ok) {
         const body = (await response.json().catch(() => null)) as {
           error?: string
         } | null
-        throw new Error(body?.error ?? "Failed to save training record")
+        throw new Error(body?.error ?? "Failed to save session record")
       }
 
-      const saved = (await response.json()) as TrainingRecord
+      const saved = (await response.json()) as SessionRecord
       await onSaved(saved)
-      toast.success(record ? "Training record updated" : "Training recorded")
+      toast.success(record ? "Session record updated" : "Session recorded")
     } catch (error) {
       toast.error(
         error instanceof Error
           ? error.message
-          : "Failed to save training record",
+          : "Failed to save session record",
       )
     } finally {
       setIsSaving(false)
@@ -82,29 +94,38 @@ function RecordFields({
 
   return (
     <div className="mt-4 space-y-3">
-      {prompts.map((prompt, index) => {
-        const inputId = `training-record-${workoutId}-${index}`
+      {fields.map((field) => {
+        const inputId = `session-record-${workoutId}-${field.id}`
+        const previousValue = findPreviousSessionValue(
+          field,
+          previousRecord?.entries ?? [],
+        )
 
         return (
-          <div key={prompt} className="space-y-1.5">
+          <div key={field.id} className="space-y-1.5">
             <label
               htmlFor={inputId}
               className="block text-xs leading-relaxed text-foreground/75"
             >
-              {prompt}
+              {field.label}
             </label>
             <Input
               id={inputId}
-              value={values[prompt] ?? ""}
+              value={values[field.id] ?? ""}
               onChange={(event) =>
                 setValues((current) => ({
                   ...current,
-                  [prompt]: event.target.value,
+                  [field.id]: event.target.value,
                 }))
               }
-              placeholder="Enter result"
+              placeholder={field.placeholder ?? "Enter result"}
               autoComplete="off"
             />
+            {previousValue && !record && (
+              <p className="text-[11px] text-muted-foreground">
+                Week {previousRecord?.weekNumber}: {previousValue}
+              </p>
+            )}
           </div>
         )
       })}
@@ -136,17 +157,17 @@ function RecordFields({
   )
 }
 
-function SignedInRecordForm({ workoutId, prompts }: Props) {
-  const { data, error, isLoading, mutate } = useSWR<TrainingRecord | null>(
-    `/api/training-records/${workoutId}`,
+function SignedInRecordForm({ workoutId, weekNumber, fields }: Props) {
+  const { data, error, isLoading, mutate } = useSWR<RecordResponse>(
+    `/api/session-records/${workoutId}?week=${weekNumber}`,
     fetcher,
   )
 
   if (isLoading || data === undefined) {
     return (
-      <div className="mt-4 space-y-3" aria-label="Loading training record">
-        {prompts.map((prompt) => (
-          <div key={prompt} className="space-y-1.5">
+      <div className="mt-4 space-y-3" aria-label="Loading session record">
+        {fields.map((field) => (
+          <div key={field.id} className="space-y-1.5">
             <div className="h-3 w-2/3 animate-pulse bg-muted" />
             <div className="h-8 animate-pulse bg-muted/60" />
           </div>
@@ -168,16 +189,20 @@ function SignedInRecordForm({ workoutId, prompts }: Props) {
 
   return (
     <RecordFields
-      key={`${workoutId}-${data?.updatedAt ?? "new"}`}
+      key={`${workoutId}-${data.record?.updatedAt ?? "new"}`}
       workoutId={workoutId}
-      prompts={prompts}
-      record={data}
-      onSaved={(saved) => mutate(saved, { revalidate: false })}
+      weekNumber={weekNumber}
+      fields={fields}
+      record={data.record}
+      previousRecord={data.previousRecord}
+      onSaved={(saved) =>
+        mutate({ ...data, record: saved }, { revalidate: false })
+      }
     />
   )
 }
 
-export function WorkoutRecordForm({ workoutId, prompts }: Props) {
+export function SessionRecordForm({ workoutId, weekNumber, fields }: Props) {
   const { isLoaded, isSignedIn } = useAuth()
 
   if (!isLoaded) {
@@ -198,5 +223,11 @@ export function WorkoutRecordForm({ workoutId, prompts }: Props) {
     )
   }
 
-  return <SignedInRecordForm workoutId={workoutId} prompts={prompts} />
+  return (
+    <SignedInRecordForm
+      workoutId={workoutId}
+      weekNumber={weekNumber}
+      fields={fields}
+    />
+  )
 }
