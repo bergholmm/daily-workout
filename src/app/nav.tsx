@@ -16,7 +16,10 @@ export function Nav() {
   const pathname = usePathname()
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md">
+    <nav
+      className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md"
+      style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+    >
       <div className="mx-auto flex max-w-2xl items-center justify-between px-4 py-3 sm:px-6 lg:max-w-3xl">
         <div className="flex items-center gap-6">
           <Link
