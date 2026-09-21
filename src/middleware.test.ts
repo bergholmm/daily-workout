@@ -7,8 +7,12 @@ type MiddlewareHandler = (
   request: Request,
 ) => Promise<void>
 
+const clerkMiddleware = vi.hoisted(() =>
+  vi.fn((handler: MiddlewareHandler) => handler),
+)
+
 vi.mock("@clerk/nextjs/server", () => ({
-  clerkMiddleware: vi.fn((handler) => handler),
+  clerkMiddleware,
   createRouteMatcher: vi.fn((patterns: string[]) => {
     return (request: Request) => {
       const { pathname } = new URL(request.url)
@@ -27,6 +31,14 @@ vi.mock("@clerk/nextjs/server", () => ({
 describe("middleware", () => {
   beforeEach(() => {
     protect.mockReset()
+  })
+
+  it("keeps sign-in redirects on the application origin", async () => {
+    await import("./middleware")
+
+    expect(clerkMiddleware).toHaveBeenCalledWith(expect.any(Function), {
+      signInUrl: "/sign-in",
+    })
   })
 
   it.each([

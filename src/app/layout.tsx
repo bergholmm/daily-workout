@@ -1,6 +1,6 @@
 import { ClerkProvider } from "@clerk/nextjs"
 import { dark } from "@clerk/themes"
-import type { Viewport } from "next"
+import type { Metadata, Viewport } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 
 import { BottomNav } from "@/components/bottom-nav"
@@ -23,13 +23,19 @@ const fontMono = Geist_Mono({
   variable: "--font-geist-mono",
 })
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "Daily Workout",
   description: "Daily workout tracker",
   icons: [{ rel: "icon", url: "/favicon.ico" }],
+  appleWebApp: {
+    capable: true,
+    title: "Daily Workout",
+    statusBarStyle: "black-translucent",
+  },
 }
 
 export const viewport: Viewport = {
+  themeColor: "#171719",
   viewportFit: "cover",
 }
 
@@ -42,6 +48,7 @@ export default function RootLayout({
     <ClerkProvider
       appearance={{ baseTheme: dark }}
       afterSignOutUrl="/sign-in"
+      signInUrl="/sign-in"
       signInFallbackRedirectUrl="/"
       signUpFallbackRedirectUrl="/"
     >
