@@ -135,7 +135,15 @@ async function ensureProgramRunSchema() {
 
   await sql`
     alter table program_workouts
-    add column if not exists phase_number integer
+      add column if not exists phase_number integer,
+      add column if not exists archived_at timestamp with time zone
+  `
+
+  await sql`
+    alter table programs
+      add column if not exists is_shared boolean not null default false,
+      add column if not exists unrestricted_records_enabled boolean not null default false,
+      add column if not exists archived_at timestamp with time zone
   `
 
   await sql`
@@ -157,6 +165,16 @@ async function ensureProgramRunSchema() {
       add column if not exists week_number integer
   `
 
+  const [sessionSchema] = await sql`
+    select exists (
+      select 1
+      from information_schema.columns
+      where table_schema = 'public'
+        and table_name = 'training_records'
+        and column_name = 'performed_on'
+    ) as supports_unrestricted_sessions
+  `
+
   await sql`
     update program_workouts
     set phase_number = ceil(week_number::numeric / 4)::integer
@@ -164,62 +182,76 @@ async function ensureProgramRunSchema() {
       and week_number is not null
   `
 
-  await sql`
-    insert into program_runs (program_id, user_id)
-    select distinct program_workouts.program_id, training_records.user_id
-    from training_records
-    join program_workouts
-      on program_workouts.id = training_records.workout_id
-    where training_records.program_run_id is null
-      and not exists (
-        select 1
-        from program_runs
-        where program_runs.program_id = program_workouts.program_id
-          and program_runs.user_id = training_records.user_id
-          and program_runs.status = 'active'
-      )
-  `
+  if (!sessionSchema.supports_unrestricted_sessions) {
+    await sql`
+      insert into program_runs (program_id, user_id)
+      select distinct program_workouts.program_id, training_records.user_id
+      from training_records
+      join program_workouts
+        on program_workouts.id = training_records.workout_id
+      where training_records.program_run_id is null
+        and not exists (
+          select 1
+          from program_runs
+          where program_runs.program_id = program_workouts.program_id
+            and program_runs.user_id = training_records.user_id
+            and program_runs.status = 'active'
+        )
+    `
 
-  await sql`
-    update training_records
-    set
-      program_run_id = (
-        select program_runs.id
-        from program_workouts
-        join program_runs
-          on program_runs.program_id = program_workouts.program_id
-          and program_runs.user_id = training_records.user_id
-        where program_workouts.id = training_records.workout_id
-        order by program_runs.started_at desc, program_runs.id desc
-        limit 1
-      ),
-      week_number = coalesce(
-        training_records.week_number,
-        (
-          select program_workouts.week_number
+    await sql`
+      update training_records
+      set
+        program_run_id = (
+          select program_runs.id
           from program_workouts
+          join program_runs
+            on program_runs.program_id = program_workouts.program_id
+            and program_runs.user_id = training_records.user_id
           where program_workouts.id = training_records.workout_id
+          order by program_runs.started_at desc, program_runs.id desc
+          limit 1
         ),
-        1
-      )
-    where program_run_id is null or week_number is null
-  `
+        week_number = coalesce(
+          training_records.week_number,
+          (
+            select program_workouts.week_number
+            from program_workouts
+            where program_workouts.id = training_records.workout_id
+          ),
+          1
+        )
+      where program_run_id is null or week_number is null
+    `
 
-  const [unmigrated] = await sql`
-    select count(*)::int as count
-    from training_records
-    where program_run_id is null or week_number is null
-  `
-  if (unmigrated.count > 0) {
-    throw new Error(
-      `Could not preserve ${unmigrated.count} existing session records`,
-    )
+    const [unmigrated] = await sql`
+      select count(*)::int as count
+      from training_records
+      where program_run_id is null or week_number is null
+    `
+    if (unmigrated.count > 0) {
+      throw new Error(
+        `Could not preserve ${unmigrated.count} existing session records`,
+      )
+    }
   }
 
   await sql`
     alter table training_records
-      alter column program_run_id set not null,
-      alter column week_number set not null
+      add column if not exists performed_on date,
+      add column if not exists note text,
+      alter column program_run_id drop not null,
+      alter column week_number drop not null
+  `
+  await sql`
+    update training_records
+    set performed_on = created_at::date
+    where performed_on is null
+  `
+  await sql`
+    alter table training_records
+      alter column performed_on set default current_date,
+      alter column performed_on set not null
   `
 
   await sql`
@@ -236,7 +268,66 @@ async function ensureProgramRunSchema() {
           add constraint training_records_program_run_id_fkey
           foreign key (program_run_id)
           references program_runs(id)
-          on delete cascade;
+          on delete restrict;
+      end if;
+    end
+    $$
+  `
+
+  await sql`
+    do $$
+    declare
+      constraint_to_replace text;
+    begin
+      for constraint_to_replace in
+        select distinct constraints.conname
+        from pg_constraint constraints
+        join pg_attribute columns
+          on columns.attrelid = constraints.conrelid
+          and columns.attnum = any(constraints.conkey)
+        where constraints.conrelid = 'training_records'::regclass
+          and constraints.contype = 'f'
+          and columns.attname in ('program_run_id', 'workout_id')
+          and constraints.confdeltype <> 'r'
+      loop
+        execute format(
+          'alter table training_records drop constraint %I',
+          constraint_to_replace
+        );
+      end loop;
+
+      if not exists (
+        select 1
+        from pg_constraint constraints
+        join pg_attribute columns
+          on columns.attrelid = constraints.conrelid
+          and columns.attnum = any(constraints.conkey)
+        where constraints.conrelid = 'training_records'::regclass
+          and constraints.contype = 'f'
+          and columns.attname = 'program_run_id'
+      ) then
+        alter table training_records
+          add constraint training_records_program_run_id_fkey
+          foreign key (program_run_id)
+          references program_runs(id)
+          on delete restrict;
+      end if;
+
+      if not exists (
+        select 1
+        from pg_constraint constraints
+        join pg_attribute columns
+          on columns.attrelid = constraints.conrelid
+          and columns.attnum = any(constraints.conkey)
+        where constraints.conrelid = 'training_records'::regclass
+          and constraints.contype = 'f'
+          and columns.attname = 'workout_id'
+      ) then
+        alter table training_records
+          add constraint training_records_workout_id_fkey
+          foreign key (workout_id)
+          references program_workouts(id)
+          on delete restrict;
       end if;
     end
     $$
@@ -258,6 +349,29 @@ async function ensureProgramRunSchema() {
     create unique index if not exists training_records_run_workout_week_idx
     on training_records (program_run_id, workout_id, week_number)
   `
+  await sql`
+    create index if not exists training_records_user_workout_performed_idx
+    on training_records (user_id, workout_id, performed_on)
+  `
+  await sql`
+    do $$
+    begin
+      if not exists (
+        select 1
+        from pg_constraint
+        where conname = 'training_records_occurrence_pair_check'
+          and conrelid = 'training_records'::regclass
+      ) then
+        alter table training_records
+          add constraint training_records_occurrence_pair_check
+          check (
+            (program_run_id is null and week_number is null)
+            or (program_run_id is not null and week_number is not null)
+          );
+      end if;
+    end
+    $$
+  `
 }
 
 await ensureProgramRunSchema()
@@ -268,6 +382,7 @@ const [program] = await sql`
     slug,
     description,
     is_public,
+    unrestricted_records_enabled,
     start_date,
     duration_weeks,
     created_by
@@ -276,6 +391,7 @@ const [program] = await sql`
     ${builtToMoveProgram.slug},
     ${builtToMoveProgram.description},
     true,
+    false,
     null,
     ${builtToMoveProgram.durationWeeks},
     'built-to-move-seed'
@@ -284,6 +400,7 @@ const [program] = await sql`
     name = excluded.name,
     description = excluded.description,
     is_public = excluded.is_public,
+    unrestricted_records_enabled = excluded.unrestricted_records_enabled,
     start_date = excluded.start_date,
     duration_weeks = excluded.duration_weeks,
     updated_at = current_timestamp

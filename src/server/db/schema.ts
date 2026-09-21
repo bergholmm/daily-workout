@@ -1,6 +1,8 @@
 import { sql } from "drizzle-orm"
 import {
   boolean,
+  check,
+  date,
   index,
   integer,
   jsonb,
@@ -64,6 +66,10 @@ export const programs = pgTable(
     slug: varchar("slug", { length: 255 }),
     description: text("description"),
     isPublic: boolean("is_public").notNull().default(false),
+    isShared: boolean("is_shared").notNull().default(false),
+    unrestrictedRecordsEnabled: boolean("unrestricted_records_enabled")
+      .notNull()
+      .default(false),
     startDate: varchar("start_date", { length: 10 }),
     durationWeeks: integer("duration_weeks"),
     createdBy: varchar("created_by", { length: 255 }).notNull(),
@@ -73,6 +79,7 @@ export const programs = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
   },
   (table) => [uniqueIndex("programs_slug_idx").on(table.slug)],
 )
@@ -110,6 +117,7 @@ export const programWorkouts = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
   },
   (table) => [
     index("program_workouts_program_date_idx").on(table.programId, table.date),
@@ -155,18 +163,22 @@ export const sessionRecords = pgTable(
   "training_records",
   {
     id: serial("id").primaryKey(),
-    programRunId: integer("program_run_id")
-      .notNull()
-      .references(() => programRuns.id, { onDelete: "cascade" }),
+    programRunId: integer("program_run_id").references(() => programRuns.id, {
+      onDelete: "restrict",
+    }),
     workoutId: integer("workout_id")
       .notNull()
-      .references(() => programWorkouts.id, { onDelete: "cascade" }),
+      .references(() => programWorkouts.id, { onDelete: "restrict" }),
     userId: varchar("user_id", { length: 255 }).notNull(),
-    weekNumber: integer("week_number").notNull(),
+    weekNumber: integer("week_number"),
+    performedOn: date("performed_on")
+      .notNull()
+      .default(sql`CURRENT_DATE`),
     entries: jsonb("entries")
       .$type<SessionRecordEntry[]>()
       .notNull()
       .default([]),
+    note: text("note"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
@@ -183,6 +195,15 @@ export const sessionRecords = pgTable(
     index("training_records_user_updated_idx").on(
       table.userId,
       table.updatedAt,
+    ),
+    index("training_records_user_workout_performed_idx").on(
+      table.userId,
+      table.workoutId,
+      table.performedOn,
+    ),
+    check(
+      "training_records_occurrence_pair_check",
+      sql`(${table.programRunId} is null and ${table.weekNumber} is null) or (${table.programRunId} is not null and ${table.weekNumber} is not null)`,
     ),
   ],
 )

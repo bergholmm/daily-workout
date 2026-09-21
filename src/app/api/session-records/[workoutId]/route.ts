@@ -5,6 +5,8 @@ import * as recordsDb from "@/server/db/session-records"
 
 import { saveSessionRecordSchema } from "@/lib/validators"
 
+import { parseUnrestrictedRecordInput } from "../record-input"
+
 type Params = { params: Promise<{ workoutId: string }> }
 
 function parseWorkoutId(value: string) {
@@ -42,6 +44,37 @@ export async function GET(request: Request, { params }: Params) {
   }
 
   const { workoutId } = await params
+  const unrestrictedWorkoutId = parseWorkoutId(workoutId)
+  const hasWeek = new URL(request.url).searchParams.has("week")
+  if (!hasWeek) {
+    if (!unrestrictedWorkoutId) {
+      return NextResponse.json({ error: "Workout not found" }, { status: 404 })
+    }
+
+    const unrestrictedWorkout = await recordsDb.getAccessibleWorkoutForHistory(
+      unrestrictedWorkoutId,
+      userId,
+    )
+    if (!unrestrictedWorkout) {
+      return NextResponse.json({ error: "Workout not found" }, { status: 404 })
+    }
+
+    const records = await recordsDb.listUnrestrictedSessionRecords({
+      userId,
+      workoutId: unrestrictedWorkout.id,
+    })
+    const latestValues: Record<string, string> = {}
+    for (const record of records) {
+      for (const entry of record.entries) {
+        if (!latestValues[entry.fieldId] && entry.value.trim()) {
+          latestValues[entry.fieldId] = entry.value
+        }
+      }
+    }
+
+    return NextResponse.json({ records, latestValues })
+  }
+
   const workout = await getWorkout(workoutId)
   if (!workout) {
     return NextResponse.json({ error: "Workout not found" }, { status: 404 })
@@ -71,6 +104,40 @@ export async function GET(request: Request, { params }: Params) {
     }),
   ])
   return NextResponse.json({ record, previousRecord })
+}
+
+export async function POST(request: Request, { params }: Params) {
+  const { userId } = await auth()
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  const { workoutId } = await params
+  const id = parseWorkoutId(workoutId)
+  if (!id) {
+    return NextResponse.json({ error: "Workout not found" }, { status: 404 })
+  }
+
+  const workout = await recordsDb.getAccessibleWorkoutForRecord(id, userId)
+  if (!workout) {
+    return NextResponse.json({ error: "Workout not found" }, { status: 404 })
+  }
+
+  const parsed = parseUnrestrictedRecordInput(
+    await request.json(),
+    workout.content,
+  )
+  if ("error" in parsed) {
+    return NextResponse.json({ error: parsed.error }, { status: 400 })
+  }
+
+  const record = await recordsDb.createUnrestrictedSessionRecord({
+    userId,
+    workoutId: workout.id,
+    ...parsed.data,
+  })
+
+  return NextResponse.json(record, { status: 201 })
 }
 
 export async function PUT(request: Request, { params }: Params) {

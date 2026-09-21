@@ -1,6 +1,15 @@
+export type ProgramExercise = {
+  id: string
+  name: string
+  recordPrompt?: {
+    label: string
+    placeholder?: string
+  }
+}
+
 export type LegacyWorkoutSection = {
   title: string
-  exercises: string[]
+  exercises: Array<string | ProgramExercise>
   videoUrl?: string | null
 }
 
@@ -66,10 +75,12 @@ export type SessionRecordEntry = {
 
 export type SessionRecord = {
   id: number
-  programRunId: number
+  programRunId: number | null
   workoutId: number
-  weekNumber: number
+  weekNumber: number | null
+  performedOn: string
   entries: SessionRecordEntry[]
+  note: string | null
   createdAt: string
   updatedAt: string
 }

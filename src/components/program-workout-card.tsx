@@ -1,9 +1,13 @@
 "use client"
 
 import { Play } from "lucide-react"
-import { useState } from "react"
+import { type ReactNode, useState } from "react"
 
-import type { WorkoutSection } from "@/lib/types"
+import {
+  getExerciseName,
+  isProgramExercise,
+} from "@/lib/program-workout-recording"
+import type { ProgramExercise, WorkoutSection } from "@/lib/types"
 
 import { VideoPlayer } from "./video-player"
 
@@ -32,9 +36,15 @@ type Props = {
   title: string | null
   content: WorkoutSection[]
   videoUrl: string | null
+  exerciseAddon?: (exercise: ProgramExercise) => ReactNode
 }
 
-export function ProgramWorkoutCard({ title, content, videoUrl }: Props) {
+export function ProgramWorkoutCard({
+  title,
+  content,
+  videoUrl,
+  exerciseAddon,
+}: Props) {
   return (
     <div className="border border-border/50 bg-card/50 p-4">
       {title && (
@@ -50,12 +60,15 @@ export function ProgramWorkoutCard({ title, content, videoUrl }: Props) {
                 {section.title}
               </p>
               {section.exercises.map((exercise, j) => (
-                <p
-                  key={j}
-                  className="text-sm leading-relaxed text-foreground/80"
+                <div
+                  key={isProgramExercise(exercise) ? exercise.id : j}
+                  className="py-1"
                 >
-                  {exercise}
-                </p>
+                  <p className="text-sm leading-relaxed text-foreground/80">
+                    {getExerciseName(exercise)}
+                  </p>
+                  {isProgramExercise(exercise) && exerciseAddon?.(exercise)}
+                </div>
               ))}
               {section.videoUrl && <CollapsibleVideo url={section.videoUrl} />}
             </div>

@@ -11,8 +11,13 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const programs = await db.listPrograms()
-  return NextResponse.json(programs)
+  const programs = await db.listPrograms(userId)
+  return NextResponse.json(
+    programs.map((program) => ({
+      ...program,
+      canEdit: program.createdBy === userId && !program.archivedAt,
+    })),
+  )
 }
 
 export async function POST(req: Request) {

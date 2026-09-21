@@ -56,7 +56,14 @@ export default function EditProgramPage() {
         method: "DELETE",
       })
       if (!res.ok) throw new Error()
-      toast.success("Program deleted")
+      const result = (await res.json()) as {
+        disposition: "archived" | "deleted"
+      }
+      toast.success(
+        result.disposition === "archived"
+          ? "Program archived to preserve history"
+          : "Program deleted",
+      )
       router.push("/programs")
     } catch {
       toast.error("Failed to delete program")
@@ -73,7 +80,7 @@ export default function EditProgramPage() {
     )
   }
 
-  if (!program) {
+  if (!program || !program.canEdit) {
     return (
       <div className="mx-auto flex max-w-2xl flex-col gap-6 px-4 pb-20 pt-8 sm:px-6 md:pb-16 lg:max-w-3xl">
         <p className="text-muted-foreground">Program not found.</p>

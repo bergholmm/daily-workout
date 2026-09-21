@@ -14,6 +14,10 @@ import {
   getBuiltToMoveEmphasis,
   getMovementSearchUrl,
 } from "@/lib/built-to-move-program"
+import {
+  getExerciseName,
+  isProgramExercise,
+} from "@/lib/program-workout-recording"
 import type {
   LegacyWorkoutSection,
   ResolvedPublicProgramWorkout,
@@ -143,10 +147,10 @@ function LegacySection({
       <div className="space-y-1.5 pl-9">
         {section.exercises.map((exercise) => (
           <p
-            key={exercise}
+            key={isProgramExercise(exercise) ? exercise.id : exercise}
             className="text-sm leading-relaxed text-foreground/80"
           >
-            <LinkedText text={exercise} />
+            <LinkedText text={getExerciseName(exercise)} />
           </p>
         ))}
       </div>

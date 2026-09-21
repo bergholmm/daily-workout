@@ -6,6 +6,7 @@ import {
   dateSchema,
   providerNameSchema,
   updateProgramSchema,
+  updateProgramWorkoutSchema,
   workoutSectionSchema,
 } from "../validators"
 
@@ -32,6 +33,10 @@ describe("dateSchema", () => {
     expect(() => dateSchema.parse("01-15-2024")).toThrow()
     expect(() => dateSchema.parse("2024/01/15")).toThrow()
     expect(() => dateSchema.parse("")).toThrow()
+  })
+
+  it("rejects a date that matches the format but not the calendar", () => {
+    expect(() => dateSchema.parse("2026-02-30")).toThrow()
   })
 })
 
@@ -74,6 +79,27 @@ describe("workoutSectionSchema", () => {
     })
     expect(result.title).toBe("Movement Prep: [2-3 Sets]")
     expect(result.exercises).toHaveLength(2)
+  })
+
+  it("accepts exercises with stable Record prompts", () => {
+    const result = workoutSectionSchema.parse({
+      title: "Main Session",
+      exercises: [
+        {
+          id: "goblet-squat",
+          name: "Goblet squat (10 reps)",
+          recordPrompt: {
+            label: "Squat load and completed reps",
+            placeholder: "24 kg, 3 x 10",
+          },
+        },
+      ],
+    })
+
+    expect(result.exercises[0]).toMatchObject({
+      id: "goblet-squat",
+      recordPrompt: { label: "Squat load and completed reps" },
+    })
   })
 
   it("rejects empty title", () => {
@@ -128,5 +154,25 @@ describe("createProgramWorkoutSchema", () => {
         videoUrl: "not-a-url",
       }),
     ).toThrow()
+  })
+
+  it("rejects duplicate stable exercise IDs across sections", () => {
+    const content = [
+      {
+        title: "Strength",
+        exercises: [{ id: "squat", name: "Back squat" }],
+      },
+      {
+        title: "Conditioning",
+        exercises: [{ id: "squat", name: "Air squat" }],
+      },
+    ]
+
+    expect(() =>
+      createProgramWorkoutSchema.parse({ date: "2024-01-15", content }),
+    ).toThrow(/unique/i)
+    expect(() => updateProgramWorkoutSchema.parse({ content })).toThrow(
+      /unique/i,
+    )
   })
 })

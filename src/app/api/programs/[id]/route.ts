@@ -14,12 +14,15 @@ export async function GET(_req: Request, { params }: Params) {
   }
 
   const { id } = await params
-  const program = await db.getProgram(Number(id))
+  const program = await db.getAccessibleProgram(Number(id), userId)
   if (!program) {
     return NextResponse.json({ error: "Not found" }, { status: 404 })
   }
 
-  return NextResponse.json(program)
+  return NextResponse.json({
+    ...program,
+    canEdit: program.createdBy === userId && !program.archivedAt,
+  })
 }
 
 export async function PATCH(req: Request, { params }: Params) {
@@ -29,6 +32,11 @@ export async function PATCH(req: Request, { params }: Params) {
   }
 
   const { id } = await params
+  const ownedProgram = await db.getProgramForOwner(Number(id), userId)
+  if (!ownedProgram) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 })
+  }
+
   const body = await req.json()
   const parsed = updateProgramSchema.safeParse(body)
   if (!parsed.success) {
@@ -50,10 +58,15 @@ export async function DELETE(_req: Request, { params }: Params) {
   }
 
   const { id } = await params
-  const program = await db.deleteProgram(Number(id))
-  if (!program) {
+  const ownedProgram = await db.getProgramForOwner(Number(id), userId)
+  if (!ownedProgram) {
     return NextResponse.json({ error: "Not found" }, { status: 404 })
   }
 
-  return NextResponse.json(program)
+  const result = await db.deleteOrArchiveProgram(Number(id))
+  if (!result) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 })
+  }
+
+  return NextResponse.json({ ...result.item, disposition: result.disposition })
 }

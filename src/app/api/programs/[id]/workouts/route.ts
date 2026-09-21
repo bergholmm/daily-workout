@@ -14,8 +14,25 @@ export async function GET(_req: Request, { params }: Params) {
   }
 
   const { id } = await params
-  const workouts = await db.listProgramWorkouts(Number(id))
-  return NextResponse.json(workouts)
+  const programId = Number(id)
+  const program = await db.getAccessibleProgram(programId, userId)
+  if (!program) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 })
+  }
+
+  const canEdit = program.createdBy === userId
+  const workouts = await db.listProgramWorkouts({
+    programId,
+    userId,
+    canEdit,
+    programArchived: Boolean(program.archivedAt),
+  })
+  return NextResponse.json(
+    workouts.map((workout) => ({
+      ...workout,
+      canEdit: canEdit && !program.archivedAt && !workout.archivedAt,
+    })),
+  )
 }
 
 export async function POST(req: Request, { params }: Params) {
@@ -25,6 +42,12 @@ export async function POST(req: Request, { params }: Params) {
   }
 
   const { id } = await params
+  const programId = Number(id)
+  const ownedProgram = await db.getProgramForOwner(programId, userId)
+  if (!ownedProgram) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 })
+  }
+
   const body = await req.json()
   const parsed = createProgramWorkoutSchema.safeParse(body)
   if (!parsed.success) {
@@ -33,7 +56,7 @@ export async function POST(req: Request, { params }: Params) {
 
   const workout = await db.createProgramWorkout({
     ...parsed.data,
-    programId: Number(id),
+    programId,
   })
 
   return NextResponse.json(workout, { status: 201 })

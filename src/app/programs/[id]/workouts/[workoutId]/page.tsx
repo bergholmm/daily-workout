@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation"
 import { useState } from "react"
 import { toast } from "sonner"
 
+import { ProgramSessionRecords } from "@/components/program-session-records"
 import { ProgramWorkoutCard } from "@/components/program-workout-card"
 import { ResponsiveDialog } from "@/components/responsive-dialog"
 import { Button } from "@/components/ui/button"
@@ -39,9 +40,16 @@ export default function WorkoutDetailPage() {
         { method: "DELETE" },
       )
       if (!res.ok) throw new Error()
-      toast.success("Workout deleted")
-      mutate()
-      router.push(`/programs/${programId}`)
+      const result = (await res.json()) as {
+        disposition: "archived" | "deleted"
+      }
+      if (result.disposition === "archived") {
+        toast.success("Workout archived to preserve history")
+        await mutate()
+      } else {
+        toast.success("Workout deleted")
+        router.push(`/programs/${programId}`)
+      }
     } catch {
       toast.error("Failed to delete workout")
     }
@@ -101,32 +109,34 @@ export default function WorkoutDetailPage() {
           <ArrowLeft className="h-3 w-3" />
           {program?.name ?? "Back"}
         </Link>
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            render={
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className="text-muted-foreground"
-              />
-            }
-          >
-            <Ellipsis className="h-4 w-4" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => setEditOpen(true)}>
-              <Pencil className="h-3.5 w-3.5" />
-              Edit workout
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className="text-destructive"
-              onClick={handleDelete}
+        {workout.canEdit && (
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className="text-muted-foreground"
+                />
+              }
             >
-              <Trash2 className="h-3.5 w-3.5" />
-              Delete workout
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+              <Ellipsis className="h-4 w-4" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setEditOpen(true)}>
+                <Pencil className="h-3.5 w-3.5" />
+                Edit workout
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="text-destructive"
+                onClick={handleDelete}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Delete workout
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
 
       <div>
@@ -138,30 +148,41 @@ export default function WorkoutDetailPage() {
         )}
       </div>
 
-      <ProgramWorkoutCard
-        title={null}
-        content={workout.content}
-        videoUrl={workout.videoUrl}
-      />
-
-      <ResponsiveDialog
-        open={editOpen}
-        onOpenChange={setEditOpen}
-        trigger={<span />}
-        title="Edit Workout"
-      >
-        <WorkoutForm
-          initial={{
-            date: workout.date,
-            title: workout.title,
-            content: workout.content,
-            videoUrl: workout.videoUrl,
-          }}
-          onSubmit={handleUpdate}
-          isSubmitting={isUpdating}
-          submitLabel="Save Changes"
+      {program?.unrestrictedRecordsEnabled ? (
+        <ProgramSessionRecords
+          workoutId={workout.id}
+          content={workout.content}
+          videoUrl={workout.videoUrl}
+          archived={Boolean(workout.archivedAt || program.archivedAt)}
         />
-      </ResponsiveDialog>
+      ) : (
+        <ProgramWorkoutCard
+          title={null}
+          content={workout.content}
+          videoUrl={workout.videoUrl}
+        />
+      )}
+
+      {workout.canEdit && (
+        <ResponsiveDialog
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          trigger={<button type="button" className="hidden" />}
+          title="Edit Workout"
+        >
+          <WorkoutForm
+            initial={{
+              date: workout.date,
+              title: workout.title,
+              content: workout.content,
+              videoUrl: workout.videoUrl,
+            }}
+            onSubmit={handleUpdate}
+            isSubmitting={isUpdating}
+            submitLabel="Save Changes"
+          />
+        </ResponsiveDialog>
+      )}
     </div>
   )
 }

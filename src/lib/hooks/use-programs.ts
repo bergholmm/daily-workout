@@ -11,9 +11,12 @@ type Program = {
   slug: string | null
   description: string | null
   isPublic: boolean
+  unrestrictedRecordsEnabled: boolean
   startDate: string | null
   durationWeeks: number | null
   createdBy: string
+  canEdit: boolean
+  archivedAt: string | null
   createdAt: string
   updatedAt: string
 }
@@ -34,6 +37,8 @@ type ProgramWorkout = {
   durationMinutes: number | null
   focus: string[]
   equipment: string[]
+  canEdit: boolean
+  archivedAt: string | null
   createdAt: string
   updatedAt: string
 }

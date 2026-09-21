@@ -60,9 +60,9 @@ cycle completion.
 _Avoid_: Conditioning workout, required session
 
 **Session**:
-One performance of a workout definition during a particular cycle week. Each
-session is recorded independently even when the same workout definition is
-repeated.
+One performance of a workout definition by one user. Repeating a workout
+definition creates another session, including when it is repeated during the
+same cycle week.
 _Avoid_: Workout definition, workout template
 
 **Weekly prescription**:
@@ -118,10 +118,16 @@ preserves the history of every earlier run.
 _Avoid_: Program, cycle
 
 **Session record**:
-The progression-relevant results from one session occurrence within a program
-run. Repeating a workout definition creates a new session record rather than
-overwriting the earlier result.
+The private, progression-relevant results from one user's session, linked to
+its workout definition and performed date. A workout definition may have any
+number of session records from that user, including several on the same date.
 _Avoid_: Workout record, workout-definition record
+
+**Record prompt**:
+A workout-specific, optional question that lets a user record the result of an
+exercise. Every exercise may have a record prompt, and a saved answer retains
+the wording shown for that session when the workout definition later changes.
+_Avoid_: Generic result, form field
 
 **Hinge**:
 A lower-body movement pattern driven primarily from the hips. Romanian
@@ -134,6 +140,12 @@ cycle focus but is never required for completion.
 _Avoid_: Workout, mandatory session
 
 **Archived program**:
-A private earlier program retained only when deleting it would remove program
-runs or session records. It is not shown as the current Training program.
-_Avoid_: Active program, Built to Move
+A program retained because deleting it would remove session records. Users can
+review existing records but cannot create new sessions for an archived program.
+_Avoid_: Active program, deleted program
+
+**Archived workout definition**:
+A workout definition retained because session records refer to it. Users can
+review those records but cannot create new sessions from the archived workout
+definition.
+_Avoid_: Deleted workout, active workout definition

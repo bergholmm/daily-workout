@@ -70,8 +70,15 @@ export default function ProgramPage() {
         { method: "DELETE" },
       )
       if (!res.ok) throw new Error()
-      toast.success("Workout deleted")
-      mutate()
+      const result = (await res.json()) as {
+        disposition: "archived" | "deleted"
+      }
+      toast.success(
+        result.disposition === "archived"
+          ? "Workout archived to preserve history"
+          : "Workout deleted",
+      )
+      await mutate()
     } catch {
       toast.error("Failed to delete workout")
     }
@@ -109,40 +116,51 @@ export default function ProgramPage() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">{program.name}</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold tracking-tight">
+              {program.name}
+            </h1>
+            {program.archivedAt && (
+              <span className="text-[10px] font-medium tracking-wide uppercase text-muted-foreground">
+                Archived
+              </span>
+            )}
+          </div>
           {program.description && (
             <p className="mt-1 text-sm text-muted-foreground">
               {program.description}
             </p>
           )}
         </div>
-        <div className="flex gap-1.5">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            nativeButton={false}
-            render={<Link href={`/programs/${programId}/edit`} />}
-          >
-            <Pencil className="h-3.5 w-3.5" />
-          </Button>
-          <ResponsiveDialog
-            open={dialogOpen}
-            onOpenChange={setDialogOpen}
-            trigger={
-              <Button size="sm">
-                <Plus className="h-4 w-4" />
-                Add
-              </Button>
-            }
-            title="Add Workout"
-          >
-            <WorkoutForm
-              onSubmit={handleAddWorkout}
-              isSubmitting={isCreating}
-              submitLabel="Add Workout"
-            />
-          </ResponsiveDialog>
-        </div>
+        {program.canEdit && (
+          <div className="flex gap-1.5">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              nativeButton={false}
+              render={<Link href={`/programs/${programId}/edit`} />}
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </Button>
+            <ResponsiveDialog
+              open={dialogOpen}
+              onOpenChange={setDialogOpen}
+              trigger={
+                <Button size="sm">
+                  <Plus className="h-4 w-4" />
+                  Add
+                </Button>
+              }
+              title="Add Workout"
+            >
+              <WorkoutForm
+                onSubmit={handleAddWorkout}
+                isSubmitting={isCreating}
+                submitLabel="Add Workout"
+              />
+            </ResponsiveDialog>
+          </div>
+        )}
       </div>
 
       {/* Workouts list */}
@@ -179,6 +197,11 @@ export default function ProgramPage() {
                 <h3 className="text-sm font-semibold">
                   {w.title ? `${w.title}` : w.date}
                 </h3>
+                {w.archivedAt && (
+                  <p className="mt-0.5 text-[10px] font-medium tracking-wide uppercase text-muted-foreground">
+                    Archived
+                  </p>
+                )}
                 <p className="mt-0.5 text-xs text-muted-foreground">
                   {w.title ? w.date + " · " : ""}
                   {w.content.length}{" "}
@@ -186,28 +209,30 @@ export default function ProgramPage() {
                 </p>
               </div>
             </Link>
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                render={
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    className="mr-2 text-muted-foreground"
-                  />
-                }
-              >
-                <Ellipsis className="h-4 w-4" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  className="text-destructive"
-                  onClick={() => handleDeleteWorkout(w.id)}
+            {w.canEdit && (
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      className="mr-2 text-muted-foreground"
+                    />
+                  }
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  <Ellipsis className="h-4 w-4" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    className="text-destructive"
+                    onClick={() => handleDeleteWorkout(w.id)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         ))}
       </div>
