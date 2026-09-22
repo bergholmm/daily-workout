@@ -5,6 +5,7 @@ import { type ReactNode, useState } from "react"
 
 import {
   getExerciseName,
+  getExerciseSearchUrl,
   isProgramExercise,
 } from "@/lib/program-workout-recording"
 import type { ProgramExercise, WorkoutSection } from "@/lib/types"
@@ -64,9 +65,23 @@ export function ProgramWorkoutCard({
                   key={isProgramExercise(exercise) ? exercise.id : j}
                   className="py-1"
                 >
-                  <p className="text-sm leading-relaxed text-foreground/80">
-                    {getExerciseName(exercise)}
-                  </p>
+                  {isProgramExercise(exercise) &&
+                  exercise.youtubeSearch !== null ? (
+                    <a
+                      href={getExerciseSearchUrl(
+                        exercise.youtubeSearch ?? exercise.name,
+                      )}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm leading-relaxed text-foreground/80 underline decoration-border underline-offset-4 transition-colors hover:text-primary hover:decoration-primary"
+                    >
+                      {exercise.name}
+                    </a>
+                  ) : (
+                    <p className="text-sm leading-relaxed text-foreground/80">
+                      {getExerciseName(exercise)}
+                    </p>
+                  )}
                   {isProgramExercise(exercise) && exerciseAddon?.(exercise)}
                 </div>
               ))}

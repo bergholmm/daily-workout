@@ -32,6 +32,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { WorkoutForm } from "@/components/workout-form"
 
 import { useProgram, useProgramWorkouts } from "@/lib/hooks/use-programs"
+import { shouldShowWorkoutDate } from "@/lib/program-display"
 import type { WorkoutSection } from "@/lib/types"
 
 export default function ProgramPage() {
@@ -202,10 +203,22 @@ export default function ProgramPage() {
                     Archived
                   </p>
                 )}
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  {w.title ? w.date + " · " : ""}
-                  {w.content.length}{" "}
-                  {w.content.length === 1 ? "section" : "sections"}
+                {w.summary && (
+                  <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                    {w.summary}
+                  </p>
+                )}
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {[
+                    w.title &&
+                    shouldShowWorkoutDate(program.unrestrictedRecordsEnabled)
+                      ? w.date
+                      : null,
+                    w.durationMinutes ? `${w.durationMinutes} min` : null,
+                    `${w.content.length} ${w.content.length === 1 ? "section" : "sections"}`,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
                 </p>
               </div>
             </Link>

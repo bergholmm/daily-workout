@@ -1,6 +1,7 @@
 export type ProgramExercise = {
   id: string
   name: string
+  youtubeSearch?: string | null
   recordPrompt?: {
     label: string
     placeholder?: string

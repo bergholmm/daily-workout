@@ -20,6 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { WorkoutForm } from "@/components/workout-form"
 
 import { useProgram, useProgramWorkouts } from "@/lib/hooks/use-programs"
+import { shouldShowWorkoutDate } from "@/lib/program-display"
 import type { WorkoutSection } from "@/lib/types"
 
 export default function WorkoutDetailPage() {
@@ -143,8 +144,30 @@ export default function WorkoutDetailPage() {
         <h1 className="text-2xl font-bold tracking-tight">
           {workout.title ?? workout.date}
         </h1>
-        {workout.title && (
-          <p className="mt-0.5 text-sm text-muted-foreground">{workout.date}</p>
+        {workout.title &&
+          shouldShowWorkoutDate(
+            Boolean(program?.unrestrictedRecordsEnabled),
+          ) && (
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              {workout.date}
+            </p>
+          )}
+        {workout.summary && (
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+            {workout.summary}
+          </p>
+        )}
+        {(workout.durationMinutes || workout.focus.length > 0) && (
+          <p className="mt-3 text-xs text-muted-foreground">
+            {[
+              workout.durationMinutes
+                ? `${workout.durationMinutes} minutes`
+                : null,
+              ...workout.focus,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+          </p>
         )}
       </div>
 

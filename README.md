@@ -1,7 +1,23 @@
 # Daily Workout
 
-The app combines the public self-paced Built to Move program with daily
-PushJerk and Linchpin workout feeds.
+The app combines reusable training programs with daily PushJerk and Linchpin
+workout feeds.
+
+## Hybrid PPL
+
+Hybrid PPL is an ongoing five-workout sequence: Push, Easy Run, Legs, Pull,
+and Longer Easy Run. Each performance creates a dated session in the same
+unrestricted workout history used by MILE. Validate or synchronize it with:
+
+```bash
+pnpm hybrid-ppl:audit
+pnpm hybrid-ppl:seed --dry-run
+pnpm hybrid-ppl:seed
+```
+
+The seed is idempotent. It preserves the existing owner and session history,
+and requires `HYBRID_PPL_OWNER_ID` only when the program and its MILE owner
+fallback do not exist.
 
 ## Built to Move
 

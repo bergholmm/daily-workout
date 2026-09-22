@@ -14,6 +14,11 @@ export function getExerciseName(exercise: string | ProgramExercise) {
   return isProgramExercise(exercise) ? exercise.name : exercise
 }
 
+export function getExerciseSearchUrl(name: string) {
+  const [movementName] = name.split(" — ", 1)
+  return `https://www.youtube.com/results?search_query=${encodeURIComponent(movementName.trim())}`
+}
+
 export function ensureStableExercisePrompts(
   content: WorkoutSection[],
   createId: () => string = () => crypto.randomUUID(),

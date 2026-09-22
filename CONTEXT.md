@@ -1,10 +1,43 @@
 # Daily Workout
 
-Daily Workout publishes and tracks training programs. Built to Move is its
-personal-first program for developing movement skill, useful strength,
-flexibility, and long-term physical capacity.
+Daily Workout publishes and tracks fixed cycles and ongoing training programs.
+It keeps each program's workout definitions and private session history.
 
 ## Language
+
+**Ongoing program**:
+A training program with no planned end, cycle week, or completion state. Its
+workout definitions can be repeated indefinitely and each performance creates
+a new session record.
+_Avoid_: Cycle, program run, calendar plan
+
+**Hybrid PPL program**:
+The ongoing Push, Easy Run, Legs, Pull, and Longer Run program. It combines
+movement skill, weighted calisthenics, targeted pump work, flexibility, and
+easy running.
+_Avoid_: Built to Move cycle, bodybuilding split
+
+**Workout sequence**:
+The recommended order of workout definitions in an ongoing program. It guides
+recovery without assigning a workout to a fixed calendar date.
+_Avoid_: Training week, schedule, cycle week
+
+**Run workout**:
+A reusable workout definition prescribed by duration and effort instead of
+sets and repetitions. In Hybrid PPL it is part of the workout sequence, not
+supplemental aerobic work.
+_Avoid_: Conditioning workout, supplemental aerobic work
+
+**Weighted calisthenics**:
+A bodyweight movement made progressively harder with external load. Weighted
+pull-ups, dips, and ring push-ups are the main upper-body strength work in
+Hybrid PPL.
+_Avoid_: Machine work, skill practice
+
+**Pump work**:
+Targeted machine or cable work performed after primary strength work to train
+muscle areas that bodyweight movements load less precisely.
+_Avoid_: Primary strength, bodybuilding program
 
 **Built to Move cycle**:
 A complete twelve-week run of Built to Move. A cycle keeps the longevity

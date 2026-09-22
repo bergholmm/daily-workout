@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 
 import {
   ensureStableExercisePrompts,
+  getExerciseSearchUrl,
   getRecordPrompts,
 } from "../program-workout-recording"
 
@@ -77,5 +78,11 @@ describe("program workout recording", () => {
         placeholder: "24 kg, 3 x 10",
       },
     ])
+  })
+
+  it("builds a YouTube search from the movement name instead of its prescription", () => {
+    expect(
+      getExerciseSearchUrl("Weighted pull-up — 3 × 5–8 · Rest 2–3 minutes"),
+    ).toBe("https://www.youtube.com/results?search_query=Weighted%20pull-up")
   })
 })
