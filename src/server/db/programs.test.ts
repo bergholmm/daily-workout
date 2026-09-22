@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   deleteReturning: vi.fn(),
   update: vi.fn(),
   updateReturning: vi.fn(),
+  orderBy: vi.fn(),
 }))
 
 vi.mock("server-only", () => ({}))
@@ -17,6 +18,37 @@ vi.mock(".", () => ({
     update: mocks.update,
   },
 }))
+
+describe("program workout ordering", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mocks.orderBy.mockResolvedValue([])
+    mocks.select.mockReturnValue({
+      from: () => ({
+        where: () => ({ orderBy: mocks.orderBy }),
+      }),
+    })
+  })
+
+  it("orders reusable workouts by phase, emphasis, date, and stable identity", async () => {
+    const { listProgramWorkouts } = await import("./programs")
+    const { programWorkouts } = await import("./schema")
+
+    await listProgramWorkouts({
+      programId: 3,
+      userId: "user-1",
+      canEdit: true,
+      programArchived: false,
+    })
+
+    expect(mocks.orderBy).toHaveBeenCalledWith(
+      programWorkouts.phaseNumber,
+      programWorkouts.emphasisNumber,
+      programWorkouts.date,
+      programWorkouts.id,
+    )
+  })
+})
 
 describe("public Built to Move workout lookup", () => {
   beforeEach(() => {

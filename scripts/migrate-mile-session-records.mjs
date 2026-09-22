@@ -2,6 +2,11 @@ import { neon } from "@neondatabase/serverless"
 import "dotenv/config"
 import { randomUUID } from "node:crypto"
 
+import {
+  getMileWorkoutPosition,
+  mileWorkoutOrder,
+} from "../data/mile-program-order.mjs"
+
 const isDryRun = process.argv.includes("--dry-run")
 
 if (!process.env.DATABASE_URL) {
@@ -25,7 +30,7 @@ if (matchingPrograms.length !== 1) {
 
 const program = matchingPrograms[0]
 const workouts = await sql`
-  select id, title, content
+  select id, title, content, phase_number, session_number
   from program_workouts
   where program_id = ${program.id}
   order by date, id
@@ -33,6 +38,24 @@ const workouts = await sql`
 
 if (workouts.length !== 9) {
   throw new Error(`Expected 9 MILE workouts; found ${workouts.length}`)
+}
+
+const positionedWorkouts = workouts.map((workout) => {
+  const position = getMileWorkoutPosition(workout.title)
+  if (!position) {
+    throw new Error(`Unexpected MILE workout title: ${workout.title}`)
+  }
+  return { ...workout, ...position }
+})
+
+if (
+  new Set(
+    positionedWorkouts.map(
+      (workout) => `${workout.phaseNumber}:${workout.emphasisNumber}`,
+    ),
+  ).size !== 9
+) {
+  throw new Error("MILE workouts must occupy nine unique order positions")
 }
 
 function migrateContent(workout) {
@@ -67,7 +90,7 @@ function migrateContent(workout) {
   return { content, promptCount, changed }
 }
 
-const migratedWorkouts = workouts.map((workout) => ({
+const migratedWorkouts = positionedWorkouts.map((workout) => ({
   ...workout,
   ...migrateContent(workout),
 }))
@@ -77,6 +100,11 @@ const promptCount = migratedWorkouts.reduce(
 )
 const changedWorkouts = migratedWorkouts.filter(
   (workout) => workout.changed,
+).length
+const reorderedWorkouts = migratedWorkouts.filter(
+  (workout) =>
+    workout.phase_number !== workout.phaseNumber ||
+    workout.session_number !== workout.emphasisNumber,
 ).length
 
 const [recordCountBefore] = await sql`
@@ -96,6 +124,7 @@ if (isDryRun) {
         workoutDefinitions: workouts.length,
         recordPrompts: promptCount,
         workoutDefinitionsToUpdate: changedWorkouts,
+        workoutDefinitionsToReorder: reorderedWorkouts,
         existingSessionRecords: recordCountBefore.count,
       },
       null,
@@ -113,7 +142,9 @@ await sql`
 `
 await sql`
   alter table program_workouts
-    add column if not exists archived_at timestamp with time zone
+    add column if not exists archived_at timestamp with time zone,
+    add column if not exists phase_number integer,
+    add column if not exists session_number integer
 `
 await sql`
   alter table training_records
@@ -215,11 +246,12 @@ await sql`
 `
 
 for (const workout of migratedWorkouts) {
-  if (!workout.changed) continue
   await sql`
     update program_workouts
     set
       content = ${JSON.stringify(workout.content)}::jsonb,
+      phase_number = ${workout.phaseNumber},
+      session_number = ${workout.emphasisNumber},
       updated_at = current_timestamp
     where id = ${workout.id}
       and program_id = ${program.id}
@@ -249,9 +281,10 @@ const [verification] = await sql`
   group by programs.id
 `
 const verifiedWorkouts = await sql`
-  select id, content
+  select id, title, phase_number, session_number, content
   from program_workouts
   where program_id = ${program.id}
+  order by phase_number, session_number, id
 `
 const verifiedPromptCount = verifiedWorkouts.reduce(
   (total, workout) => total + migrateContent(workout).promptCount,
@@ -269,6 +302,11 @@ const hasLegacyExercise = verifiedWorkouts.some((workout) =>
       ),
   ),
 )
+const verifiedOrder = verifiedWorkouts.map((workout) => ({
+  phaseNumber: workout.phase_number,
+  emphasisNumber: workout.session_number,
+  title: workout.title,
+}))
 
 if (
   !verification.is_shared ||
@@ -276,7 +314,8 @@ if (
   verification.workout_count !== 9 ||
   verification.record_count !== recordCountBefore.count ||
   verifiedPromptCount !== promptCount ||
-  hasLegacyExercise
+  hasLegacyExercise ||
+  JSON.stringify(verifiedOrder) !== JSON.stringify(mileWorkoutOrder)
 ) {
   throw new Error(
     `MILE verification failed: ${JSON.stringify({
@@ -285,6 +324,7 @@ if (
       promptCount,
       verifiedPromptCount,
       hasLegacyExercise,
+      verifiedOrder,
     })}`,
   )
 }
@@ -297,6 +337,7 @@ console.log(
       workoutDefinitions: verification.workout_count,
       recordPrompts: verifiedPromptCount,
       preservedSessionRecords: verification.record_count,
+      workoutOrder: verifiedOrder.map((workout) => workout.title),
     },
     null,
     2,

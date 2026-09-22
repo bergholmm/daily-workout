@@ -241,7 +241,12 @@ export async function listProgramWorkouts({
               ),
       ),
     )
-    .orderBy(programWorkouts.date)
+    .orderBy(
+      programWorkouts.phaseNumber,
+      programWorkouts.emphasisNumber,
+      programWorkouts.date,
+      programWorkouts.id,
+    )
 }
 
 export async function listVisibleProgramWorkouts(
