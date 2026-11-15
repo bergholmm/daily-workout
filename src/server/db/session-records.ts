@@ -8,6 +8,7 @@ import {
   lt,
   lte,
   or,
+  sql,
 } from "drizzle-orm"
 
 import type { SessionRecordEntry } from "@/lib/types"
@@ -269,9 +270,17 @@ export async function getPreviousSessionRecord({
   return record ?? null
 }
 
-export async function listRecordedSessions(userId: string, programId: number) {
-  const run = await getLatestProgramRun(userId, programId)
-  if (!run) return { run: null, records: [] }
+export async function listRecordedSessions(
+  userId: string,
+  programSlug: string,
+) {
+  const latestRun = db
+    .select({ id: programRuns.id })
+    .from(programRuns)
+    .innerJoin(programs, eq(programRuns.programId, programs.id))
+    .where(and(eq(programRuns.userId, userId), eq(programs.slug, programSlug)))
+    .orderBy(desc(programRuns.startedAt), desc(programRuns.id))
+    .limit(1)
 
   const records = await db
     .select({
@@ -282,19 +291,16 @@ export async function listRecordedSessions(userId: string, programId: number) {
     .where(
       and(
         eq(sessionRecords.userId, userId),
-        eq(sessionRecords.programRunId, run.id),
+        eq(sessionRecords.programRunId, sql`(${latestRun})`),
         isNotNull(sessionRecords.weekNumber),
       ),
     )
 
-  return {
-    run,
-    records: records.flatMap((record) =>
-      record.weekNumber === null
-        ? []
-        : [{ ...record, weekNumber: record.weekNumber }],
-    ),
-  }
+  return records.flatMap((record) =>
+    record.weekNumber === null
+      ? []
+      : [{ ...record, weekNumber: record.weekNumber }],
+  )
 }
 
 export async function saveSessionRecord({

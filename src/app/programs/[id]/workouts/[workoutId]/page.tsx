@@ -3,10 +3,14 @@
 import { ArrowLeft, Ellipsis, Pencil, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { toast } from "sonner"
+import { preload } from "swr"
 
-import { ProgramSessionRecords } from "@/components/program-session-records"
+import {
+  ProgramSessionRecords,
+  sessionRecordsKey,
+} from "@/components/program-session-records"
 import { ProgramWorkoutCard } from "@/components/program-workout-card"
 import { ResponsiveDialog } from "@/components/responsive-dialog"
 import { Button } from "@/components/ui/button"
@@ -19,6 +23,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { WorkoutForm } from "@/components/workout-form"
 
+import fetcher from "@/lib/fetcher"
 import { useProgram, useProgramWorkouts } from "@/lib/hooks/use-programs"
 import { shouldShowWorkoutDate } from "@/lib/program-display"
 import type { WorkoutSection } from "@/lib/types"
@@ -32,6 +37,12 @@ export default function WorkoutDetailPage() {
   const { workouts, isLoading, mutate } = useProgramWorkouts(programId)
   const workout = workouts?.find((w) => w.id === workoutId)
   const [editOpen, setEditOpen] = useState(false)
+  const loadsRecords = Boolean(program?.unrestrictedRecordsEnabled)
+
+  // Start the history request without waiting for the workout list.
+  useEffect(() => {
+    if (loadsRecords) preload(sessionRecordsKey(workoutId), fetcher)
+  }, [loadsRecords, workoutId])
   const [isUpdating, setIsUpdating] = useState(false)
 
   async function handleDelete() {

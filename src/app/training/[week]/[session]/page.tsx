@@ -3,11 +3,9 @@ import { ArrowLeft, ArrowRight, Check } from "lucide-react"
 import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
+import { cache } from "react"
 
-import {
-  getPublicProgramBySlug,
-  getVisiblePublicProgramWorkoutBySlot,
-} from "@/server/db/programs"
+import { getVisiblePublicProgramWorkoutBySlot } from "@/server/db/programs"
 import { listRecordedSessions } from "@/server/db/session-records"
 
 import { PublicProgramWorkoutCard } from "@/components/public-program-workout"
@@ -36,6 +34,15 @@ function parseSlot(weekValue: string, sessionValue: string) {
   return { week, emphasis }
 }
 
+// Shared by generateMetadata and the page so one request queries once.
+const getWorkout = cache((weekNumber: number, emphasisNumber: number) =>
+  getVisiblePublicProgramWorkoutBySlot(
+    BUILT_TO_MOVE_PROGRAM_SLUG,
+    weekNumber,
+    emphasisNumber,
+  ),
+)
+
 function adjacentSlot(index: number) {
   if (index < 0 || index >= 36) return null
   return {
@@ -49,11 +56,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const slot = parseSlot(weekValue, sessionValue)
   if (!slot) return { title: "Workout not found · Built to Move" }
 
-  const workout = await getVisiblePublicProgramWorkoutBySlot(
-    BUILT_TO_MOVE_PROGRAM_SLUG,
-    slot.week,
-    slot.emphasis.number,
-  )
+  const workout = await getWorkout(slot.week, slot.emphasis.number)
 
   return {
     title: workout?.title
@@ -68,27 +71,18 @@ export default async function BuiltToMoveWorkoutPage({ params }: Props) {
   const slot = parseSlot(weekValue, sessionValue)
   if (!slot) notFound()
 
-  const workout = await getVisiblePublicProgramWorkoutBySlot(
-    BUILT_TO_MOVE_PROGRAM_SLUG,
-    slot.week,
-    slot.emphasis.number,
-  )
-  if (!workout) notFound()
-
   const level = getBuiltToMoveLevel(slot.week)
   if (!level) notFound()
 
-  const [{ userId }, program] = await Promise.all([
-    auth(),
-    getPublicProgramBySlug(BUILT_TO_MOVE_PROGRAM_SLUG),
+  const { userId } = await auth()
+  const [workout, records] = await Promise.all([
+    getWorkout(slot.week, slot.emphasis.number),
+    userId ? listRecordedSessions(userId, BUILT_TO_MOVE_PROGRAM_SLUG) : [],
   ])
-  if (!program) notFound()
+  if (!workout) notFound()
 
-  const progress = userId
-    ? await listRecordedSessions(userId, program.id)
-    : { run: null, records: [] }
   const recordedWeeks = new Set(
-    progress.records
+    records
       .filter((record) => record.workoutId === workout.id)
       .map((record) => record.weekNumber),
   )

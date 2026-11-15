@@ -45,6 +45,10 @@ type Props = {
   archived?: boolean
 }
 
+export function sessionRecordsKey(workoutId: number) {
+  return `/api/session-records/${workoutId}`
+}
+
 function today() {
   const date = new Date()
   const month = String(date.getMonth() + 1).padStart(2, "0")
@@ -83,7 +87,7 @@ export function ProgramSessionRecords({
 }: Props) {
   const prompts = useMemo(() => getRecordPrompts(content), [content])
   const { data, error, isLoading, mutate } = useSWR<RecordResponse>(
-    `/api/session-records/${workoutId}`,
+    sessionRecordsKey(workoutId),
     fetcher,
   )
   const [isLogging, setIsLogging] = useState(false)

@@ -5,6 +5,7 @@ import {
   asc,
   eq,
   exists,
+  getTableColumns,
   isNotNull,
   isNull,
   lte,
@@ -249,26 +250,31 @@ export async function listProgramWorkouts({
     )
 }
 
-export async function listVisibleProgramWorkouts(
-  programId: number,
+function visiblePublicWorkout(slug: string, now: Date) {
+  return and(
+    eq(programs.slug, slug),
+    eq(programs.isPublic, true),
+    isNull(programs.archivedAt),
+    isNull(programWorkouts.archivedAt),
+    or(
+      eq(programWorkouts.status, "published"),
+      and(
+        eq(programWorkouts.status, "scheduled"),
+        lte(programWorkouts.publishAt, now),
+      ),
+    ),
+  )
+}
+
+export async function listVisiblePublicProgramWorkouts(
+  slug: string,
   now = new Date(),
 ) {
   return db
-    .select()
+    .select(getTableColumns(programWorkouts))
     .from(programWorkouts)
-    .where(
-      and(
-        eq(programWorkouts.programId, programId),
-        isNull(programWorkouts.archivedAt),
-        or(
-          eq(programWorkouts.status, "published"),
-          and(
-            eq(programWorkouts.status, "scheduled"),
-            lte(programWorkouts.publishAt, now),
-          ),
-        ),
-      ),
-    )
+    .innerJoin(programs, eq(programWorkouts.programId, programs.id))
+    .where(visiblePublicWorkout(slug, now))
     .orderBy(
       asc(programWorkouts.phaseNumber),
       asc(programWorkouts.emphasisNumber),
@@ -306,19 +312,9 @@ export async function getVisiblePublicProgramWorkoutBySlot(
     .innerJoin(programs, eq(programWorkouts.programId, programs.id))
     .where(
       and(
-        eq(programs.slug, slug),
-        eq(programs.isPublic, true),
-        isNull(programs.archivedAt),
-        isNull(programWorkouts.archivedAt),
+        visiblePublicWorkout(slug, now),
         eq(programWorkouts.phaseNumber, phaseNumber),
         eq(programWorkouts.emphasisNumber, emphasisNumber),
-        or(
-          eq(programWorkouts.status, "published"),
-          and(
-            eq(programWorkouts.status, "scheduled"),
-            lte(programWorkouts.publishAt, now),
-          ),
-        ),
       ),
     )
     .limit(1)
