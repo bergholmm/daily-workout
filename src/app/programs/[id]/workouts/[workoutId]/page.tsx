@@ -184,6 +184,7 @@ export default function WorkoutDetailPage() {
 
       {program?.unrestrictedRecordsEnabled ? (
         <ProgramSessionRecords
+          key={workout.id}
           workoutId={workout.id}
           content={workout.content}
           videoUrl={workout.videoUrl}

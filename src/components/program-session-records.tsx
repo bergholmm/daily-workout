@@ -2,7 +2,7 @@
 
 import { format, parseISO } from "date-fns"
 import { ChevronDown, Pencil, Plus, Trash2 } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 import useSWR from "swr"
 
@@ -25,6 +25,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
 
 import fetcher from "@/lib/fetcher"
+import { type LogDraft, readLogDraft, writeLogDraft } from "@/lib/log-draft"
 import { getRecordPrompts } from "@/lib/program-workout-recording"
 import type {
   ProgramExercise,
@@ -90,10 +91,12 @@ export function ProgramSessionRecords({
     sessionRecordsKey(workoutId),
     fetcher,
   )
-  const [isLogging, setIsLogging] = useState(false)
-  const [values, setValues] = useState<Record<string, string>>({})
-  const [performedOn, setPerformedOn] = useState(today)
-  const [note, setNote] = useState("")
+  const [draft, setDraft] = useState<LogDraft | null>(null)
+
+  // Restore an unsaved log after mount, so hydration matches the server.
+  useEffect(() => {
+    setDraft(readLogDraft(localStorage, workoutId))
+  }, [workoutId])
   const [isSaving, setIsSaving] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [editValues, setEditValues] = useState<Record<string, string>>({})
@@ -103,32 +106,31 @@ export function ProgramSessionRecords({
     Record<number, boolean>
   >({})
 
-  function resetLog() {
-    setIsLogging(false)
-    setValues({})
-    setPerformedOn(today())
-    setNote("")
+  function updateDraft(next: LogDraft | null) {
+    setDraft(next)
+    writeLogDraft(localStorage, workoutId, next)
   }
 
   async function saveNewRecord() {
+    if (!draft) return
     setIsSaving(true)
     try {
       const response = await fetch(`/api/session-records/${workoutId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          performedOn,
+          performedOn: draft.performedOn,
           timezoneOffsetMinutes: new Date().getTimezoneOffset(),
           entries: prompts.map((prompt) => ({
             fieldId: prompt.id,
-            value: values[prompt.id] ?? "",
+            value: draft.values[prompt.id] ?? "",
           })),
-          note,
+          note: draft.note,
         }),
       })
       if (!response.ok) throw new Error(await readError(response))
       await mutate()
-      resetLog()
+      updateDraft(null)
       toast.success("Session recorded")
     } catch (saveError) {
       toast.error(
@@ -207,8 +209,12 @@ export function ProgramSessionRecords({
               </p>
             )}
           </div>
-          {!archived && !isLogging && (
-            <Button onClick={() => setIsLogging(true)}>
+          {!archived && !draft && (
+            <Button
+              onClick={() =>
+                updateDraft({ values: {}, performedOn: today(), note: "" })
+              }
+            >
               <Plus />
               Log workout
             </Button>
@@ -226,7 +232,7 @@ export function ProgramSessionRecords({
 
             return (
               <div className="mt-1.5 space-y-1.5 border-l border-border pl-3">
-                {isLogging && (
+                {draft && (
                   <>
                     <Label
                       htmlFor={`record-${exercise.id}`}
@@ -238,13 +244,16 @@ export function ProgramSessionRecords({
                     </Label>
                     <Input
                       id={`record-${exercise.id}`}
-                      value={values[exercise.id] ?? ""}
+                      value={draft.values[exercise.id] ?? ""}
                       placeholder={prompt.placeholder || "Optional result"}
                       onChange={(event) =>
-                        setValues((current) => ({
-                          ...current,
-                          [exercise.id]: event.target.value,
-                        }))
+                        updateDraft({
+                          ...draft,
+                          values: {
+                            ...draft.values,
+                            [exercise.id]: event.target.value,
+                          },
+                        })
                       }
                     />
                   </>
@@ -259,7 +268,7 @@ export function ProgramSessionRecords({
           }}
         />
 
-        {isLogging && (
+        {draft && (
           <div className="space-y-3 border border-border/50 bg-card/50 p-4">
             <div className="space-y-1.5">
               <Label htmlFor="performed-on">Performed on</Label>
@@ -267,21 +276,29 @@ export function ProgramSessionRecords({
                 id="performed-on"
                 type="date"
                 max={today()}
-                value={performedOn}
-                onChange={(event) => setPerformedOn(event.target.value)}
+                value={draft.performedOn}
+                onChange={(event) =>
+                  updateDraft({ ...draft, performedOn: event.target.value })
+                }
               />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="session-note">Session note</Label>
               <Textarea
                 id="session-note"
-                value={note}
+                value={draft.note}
                 placeholder="Optional note about the full workout"
-                onChange={(event) => setNote(event.target.value)}
+                onChange={(event) =>
+                  updateDraft({ ...draft, note: event.target.value })
+                }
               />
             </div>
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={resetLog} disabled={isSaving}>
+              <Button
+                variant="outline"
+                onClick={() => updateDraft(null)}
+                disabled={isSaving}
+              >
                 Cancel
               </Button>
               <Button onClick={saveNewRecord} disabled={isSaving}>
