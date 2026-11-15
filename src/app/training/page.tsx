@@ -12,7 +12,7 @@ import Link from "next/link"
 
 import {
   getPublicProgramBySlug,
-  listVisibleProgramWorkouts,
+  listVisiblePublicProgramWorkouts,
 } from "@/server/db/programs"
 import { listRecordedSessions } from "@/server/db/session-records"
 
@@ -124,9 +124,11 @@ function WorkoutLink({
 }
 
 export default async function TrainingPage({ searchParams }: Props) {
-  const [{ userId }, program, requested] = await Promise.all([
-    auth(),
+  const { userId } = await auth()
+  const [program, workouts, records, requested] = await Promise.all([
     getPublicProgramBySlug(BUILT_TO_MOVE_PROGRAM_SLUG),
+    listVisiblePublicProgramWorkouts(BUILT_TO_MOVE_PROGRAM_SLUG),
+    userId ? listRecordedSessions(userId, BUILT_TO_MOVE_PROGRAM_SLUG) : [],
     searchParams,
   ])
 
@@ -148,13 +150,7 @@ export default async function TrainingPage({ searchParams }: Props) {
     )
   }
 
-  const [workouts, progress] = await Promise.all([
-    listVisibleProgramWorkouts(program.id),
-    userId
-      ? listRecordedSessions(userId, program.id)
-      : Promise.resolve({ run: null, records: [] }),
-  ])
-  const trainingProgress = buildBuiltToMoveProgress(workouts, progress.records)
+  const trainingProgress = buildBuiltToMoveProgress(workouts, records)
   const completed = trainingProgress.completedKeys
   const nextSlot = trainingProgress.nextSlot
   const fallbackSlot = nextSlot ?? trainingProgress.slots.at(-1)
