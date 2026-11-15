@@ -3,14 +3,40 @@ import "dotenv/config"
 
 import {
   hybridPplProgram,
-  hybridPplPublicationKey,
-  hybridPplReferenceDate,
   hybridPplWorkouts,
 } from "../data/hybrid-ppl-program.mjs"
+import {
+  recommendedRoutineProgram,
+  recommendedRoutineWorkouts,
+} from "../data/recommended-routine-program.mjs"
+
+const definitions = {
+  "hybrid-ppl": [hybridPplProgram, hybridPplWorkouts],
+  "recommended-routine": [
+    recommendedRoutineProgram,
+    recommendedRoutineWorkouts,
+  ],
+}
+
+const slug = process.argv.slice(2).find((arg) => !arg.startsWith("--"))
+if (!definitions[slug]) {
+  throw new Error(
+    `Usage: seed-ongoing-program.mjs <${Object.keys(definitions).join("|")}> [--dry-run]`,
+  )
+}
+const [definition, workouts] = definitions[slug]
+
+function publicationKey(workout) {
+  return `${definition.slug}:${workout.key}`
+}
+
+function referenceDate(workout) {
+  return `2000-01-${String(workout.position).padStart(2, "0")}`
+}
 
 const isDryRun = process.argv.includes("--dry-run")
-const expectedKeys = hybridPplWorkouts.map(hybridPplPublicationKey)
-const expectedPromptCounts = hybridPplWorkouts.map((workout) =>
+const expectedKeys = workouts.map(publicationKey)
+const expectedPromptCounts = workouts.map((workout) =>
   workout.content.reduce(
     (total, section) =>
       total +
@@ -27,10 +53,10 @@ if (isDryRun) {
     JSON.stringify(
       {
         dryRun: true,
-        program: hybridPplProgram.name,
-        slug: hybridPplProgram.slug,
-        workoutDefinitions: hybridPplWorkouts.length,
-        sequence: hybridPplWorkouts.map((workout) => workout.title),
+        program: definition.name,
+        slug: definition.slug,
+        workoutDefinitions: workouts.length,
+        sequence: workouts.map((workout) => workout.title),
         recordPrompts: expectedPromptCounts.reduce(
           (total, count) => total + count,
           0,
@@ -63,11 +89,11 @@ await sql`
 const [existingProgram] = await sql`
   select id, created_by
   from programs
-  where slug = ${hybridPplProgram.slug}
+  where slug = ${definition.slug}
   limit 1
 `
 
-let ownerId = existingProgram?.created_by ?? process.env.HYBRID_PPL_OWNER_ID
+let ownerId = existingProgram?.created_by ?? process.env.PROGRAM_OWNER_ID
 if (!ownerId) {
   const milePrograms = await sql`
     select created_by
@@ -77,7 +103,7 @@ if (!ownerId) {
   `
   if (milePrograms.length !== 1) {
     throw new Error(
-      `Set HYBRID_PPL_OWNER_ID or keep exactly one MILE program; found ${milePrograms.length}`,
+      `Set PROGRAM_OWNER_ID or keep exactly one MILE program; found ${milePrograms.length}`,
     )
   }
   ownerId = milePrograms[0].created_by
@@ -106,12 +132,12 @@ const [program] = await sql`
     created_by,
     archived_at
   ) values (
-    ${hybridPplProgram.name},
-    ${hybridPplProgram.slug},
-    ${hybridPplProgram.description},
-    ${hybridPplProgram.isPublic},
-    ${hybridPplProgram.isShared},
-    ${hybridPplProgram.unrestrictedRecordsEnabled},
+    ${definition.name},
+    ${definition.slug},
+    ${definition.description},
+    ${definition.isPublic},
+    ${definition.isShared},
+    ${definition.unrestrictedRecordsEnabled},
     null,
     null,
     ${ownerId},
@@ -130,8 +156,8 @@ const [program] = await sql`
   returning id, name, slug, created_by
 `
 
-for (const workout of hybridPplWorkouts) {
-  const key = hybridPplPublicationKey(workout)
+for (const workout of workouts) {
+  const key = publicationKey(workout)
   const contentJson = JSON.stringify(workout.content)
   const focusJson = JSON.stringify(workout.focus)
   const equipmentJson = JSON.stringify(workout.equipment)
@@ -156,7 +182,7 @@ for (const workout of hybridPplWorkouts) {
       archived_at
     ) values (
       ${program.id},
-      ${hybridPplReferenceDate(workout)},
+      ${referenceDate(workout)},
       ${workout.title},
       ${workout.summary},
       ${contentJson}::jsonb,
@@ -203,7 +229,7 @@ const obsoleteWorkouts = await sql`
     ) as has_history
   from program_workouts
   where program_workouts.program_id = ${program.id}
-    and program_workouts.publication_key like 'hybrid-ppl:%'
+    and program_workouts.publication_key like ${`${definition.slug}:%`}
     and not (
       program_workouts.publication_key = any(
         array(select jsonb_array_elements_text(${expectedKeysJson}::jsonb))
@@ -261,16 +287,17 @@ const actualPromptCounts = activeWorkouts.map((workout) =>
 )
 
 if (
-  activeWorkouts.length !== 5 ||
+  activeWorkouts.length !== workouts.length ||
   JSON.stringify(actualPromptCounts) !== JSON.stringify(expectedPromptCounts) ||
-  verifiedProgram.is_public !== false ||
-  verifiedProgram.is_shared !== true ||
-  verifiedProgram.unrestricted_records_enabled !== true ||
+  verifiedProgram.is_public !== definition.isPublic ||
+  verifiedProgram.is_shared !== definition.isShared ||
+  verifiedProgram.unrestricted_records_enabled !==
+    definition.unrestrictedRecordsEnabled ||
   verifiedProgram.duration_weeks !== null ||
   recordsAfter.count !== recordsBefore.count
 ) {
   throw new Error(
-    `Hybrid PPL verification failed: ${JSON.stringify({
+    `${definition.name} verification failed: ${JSON.stringify({
       workoutCount: activeWorkouts.length,
       actualPromptCounts,
       expectedPromptCounts,

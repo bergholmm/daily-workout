@@ -551,11 +551,3 @@ export const hybridPplWorkouts = [
     ],
   },
 ]
-
-export function hybridPplPublicationKey(workout) {
-  return `${hybridPplProgram.slug}:${workout.key}`
-}
-
-export function hybridPplReferenceDate(workout) {
-  return `2000-01-${String(workout.position).padStart(2, "0")}`
-}
