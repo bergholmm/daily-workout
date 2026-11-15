@@ -26,41 +26,60 @@ describe("Recommended Routine program definition", () => {
       unrestrictedRecordsEnabled: true,
     })
     expect(recommendedRoutineWorkouts.map((workout) => workout.title)).toEqual([
-      "Recommended Routine",
+      "Full Body",
     ])
   })
 
-  it("orders the warm-up, three pairs, and the core triplet", () => {
+  it("lists the warm-up, three pairs, the core triplet, then the ladders", () => {
     const [workout] = recommendedRoutineWorkouts
-    const recorded = workout.content.map((section) =>
-      exercisesIn(section)
-        .filter((exercise) => exercise.recordPrompt)
-        .map((exercise) => exercise.name.split(" — ")[0]),
-    )
 
     expect(workout.content.map((section) => section.title)).toEqual([
-      "Warm-up — 5–10 minutes",
-      "First pair — 3 rounds",
-      "Second pair — 3 rounds",
-      "Third pair — 3 rounds",
-      "Core triplet — 3 rounds",
-      "Session rules",
+      "Warm-up: [1 Set]",
+      "Pair 1: [3 Sets · Rest 90s]",
+      "Pair 2: [3 Sets · Rest 90s]",
+      "Pair 3: [3 Sets · Rest 90s]",
+      "Core Triplet: [3 Sets · Rest 60s]",
+      "Progressions",
     ])
-    expect(recorded).toEqual([
+    expect(
+      workout.content.map((section) =>
+        exercisesIn(section)
+          .filter((exercise) => exercise.recordPrompt)
+          .map((exercise) => exercise.name),
+      ),
+    ).toEqual([
       [],
-      ["Pull-up progression", "Squat progression"],
-      ["Dip progression", "Hinge progression"],
-      ["Row progression", "Push-up progression"],
+      ["Pull-up Progression (5-8 Reps)", "Squat Progression (5-8 Reps)"],
+      ["Dip Progression (5-8 Reps)", "Hinge Progression (5-8 Reps)"],
+      ["Row Progression (5-8 Reps)", "Push-up Progression (5-8 Reps)"],
       [
-        "Anti-extension progression",
-        "Anti-rotation progression",
-        "Extension progression",
+        "Anti-Extension Progression (8-12 Reps)",
+        "Anti-Rotation Progression (8-12 Reps)",
+        "Extension Progression (8-12 Reps)",
       ],
       [],
     ])
   })
 
-  it("uses stable unique exercise identities", () => {
+  it("keeps notes out of the training blocks, like MILE", () => {
+    const [workout] = recommendedRoutineWorkouts
+    const trainingBlocks = workout.content.slice(0, -1)
+
+    for (const section of trainingBlocks) {
+      expect(section.exercises.every((item) => typeof item !== "string")).toBe(
+        true,
+      )
+    }
+    for (const exercise of trainingBlocks.flatMap(exercisesIn)) {
+      if (exercise.recordPrompt) {
+        expect(exercise.recordPrompt.label).toBe(
+          exercise.name.replace(/ \(.*\)$/, ""),
+        )
+      }
+    }
+  })
+
+  it("keeps every exercise identity stable and unique", () => {
     const ids = recommendedRoutineWorkouts.flatMap((workout) =>
       workout.content.flatMap((section) =>
         exercisesIn(section).map((exercise) => exercise.id),
@@ -68,18 +87,28 @@ describe("Recommended Routine program definition", () => {
     )
 
     expect(new Set(ids).size).toBe(ids.length)
-    expect(ids.every((id) => id.startsWith("recommended-routine-"))).toBe(true)
+    expect(ids).toEqual(
+      expect.arrayContaining([
+        "recommended-routine-pull-up",
+        "recommended-routine-squat",
+        "recommended-routine-dip",
+        "recommended-routine-hinge",
+        "recommended-routine-row",
+        "recommended-routine-push-up",
+        "recommended-routine-anti-extension",
+        "recommended-routine-anti-rotation",
+        "recommended-routine-extension",
+      ]),
+    )
   })
 
-  it("keeps the set, rest, and progression rules visible", () => {
-    const visibleText = JSON.stringify(recommendedRoutineWorkouts)
+  it("lists the progression rule and one ladder per exercise at the end", () => {
+    const progressions = recommendedRoutineWorkouts[0].content.at(-1)!
 
-    expect(visibleText).toContain("3 × 5–8")
-    expect(visibleText).toContain("3 × 8–12")
-    expect(visibleText).toContain("Rest 90 seconds")
-    expect(visibleText).toContain("Rest 60 seconds")
-    expect(visibleText).toContain("Scapular pulls → Arch hangs")
-    expect(visibleText).toContain("Plank → Ring ab rollouts")
-    expect(visibleText).toContain("move to the next step at 3 × 5")
+    expect(progressions.exercises).toHaveLength(10)
+    expect(progressions.exercises[0]).toContain("At 3 × 8")
+    expect(progressions.exercises[1]).toBe(
+      "Pull-up: Scapular Pulls → Arch Hangs → Negatives → Pull-ups → Weighted",
+    )
   })
 })
