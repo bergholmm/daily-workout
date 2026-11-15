@@ -4,6 +4,7 @@ import type { Metadata, Viewport } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 
 import { BottomNav } from "@/components/bottom-nav"
+import { SWRCacheProvider } from "@/components/swr-cache-provider"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
@@ -60,12 +61,14 @@ export default function RootLayout({
         <body>
           <ThemeProvider>
             <TooltipProvider>
-              <div className="flex min-h-screen w-full flex-col">
-                <Nav />
-                <main className="flex-1">{children}</main>
-              </div>
-              <BottomNav />
-              <Toaster />
+              <SWRCacheProvider>
+                <div className="flex min-h-screen w-full flex-col">
+                  <Nav />
+                  <main className="flex-1">{children}</main>
+                </div>
+                <BottomNav />
+                <Toaster />
+              </SWRCacheProvider>
             </TooltipProvider>
           </ThemeProvider>
         </body>
