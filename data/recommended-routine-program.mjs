@@ -2,31 +2,25 @@
 // https://www.reddit.com/r/bodyweightfitness/wiki/kb/recommended_routine/
 // https://www.reddit.com/r/bodyweightfitness/wiki/exercises/
 
-function movement(id, name, recordPrompt, options = {}) {
+function warmUp(id, name, prescription, youtubeSearch = name) {
   return {
     id: `recommended-routine-${id}`,
-    name,
-    ...(recordPrompt ? { recordPrompt } : {}),
-    ...(options.youtubeSearch === null ? { youtubeSearch: null } : {}),
-    ...(typeof options.youtubeSearch === "string"
-      ? { youtubeSearch: options.youtubeSearch }
-      : {}),
+    name: `${name} (${prescription})`,
+    youtubeSearch,
   }
 }
 
-function progression(id, name, sets, placeholder, ladder) {
-  return [
-    movement(
-      id,
-      `${name} — ${sets}`,
-      {
-        label: `${name.replace(" progression", "")} step and reps`,
-        placeholder,
-      },
-      { youtubeSearch: `bodyweightfitness ${name}` },
-    ),
-    `Ladder: ${ladder.join(" → ")}`,
-  ]
+function logged(id, name, reps, placeholder, youtubeSearch = name) {
+  return {
+    id: `recommended-routine-${id}`,
+    name: `${name} (${reps} Reps)`,
+    youtubeSearch,
+    recordPrompt: { label: name, placeholder },
+  }
+}
+
+function progression(id, name, reps, placeholder) {
+  return logged(id, name, reps, placeholder, `bodyweightfitness ${name}`)
 }
 
 export const recommendedRoutineProgram = {
@@ -44,183 +38,162 @@ export const recommendedRoutineWorkouts = [
   {
     key: "full-body",
     position: 1,
-    title: "Recommended Routine",
+    title: "Full Body",
     summary:
-      "Warm up, then train pull-up and squat, dip and hinge, row and push-up as pairs, and finish with a core triplet. Train three times a week with a rest day between sessions.",
-    durationMinutes: 60,
+      "Three pairs, a core triplet, and two pump tri-sets for posture. Alternate the exercises in each block, 3 times a week.",
+    durationMinutes: 75,
     focus: ["Full body", "Strength", "Progression ladders"],
     equipment: [
       "Pull-up bar",
       "Parallel bars or dip station",
       "Low bar, rings, or sturdy table for rows",
       "Resistance band",
+      "Cable stack and dumbbells",
     ],
     content: [
       {
-        title: "Warm-up — 5–10 minutes",
+        title: "Warm-up: [1 Set]",
         exercises: [
-          movement(
+          warmUp(
             "shoulder-band-warm-up",
-            "Yuri's shoulder band warm-up — 5–10 reps",
+            "Shoulder Band Warm-up",
+            "5-10 Reps",
+            "Yuri's shoulder band warm-up",
           ),
-          movement("squat-sky-reach", "Squat sky reach — 5–10 reps"),
-          movement("wrist-prep", "GMB wrist prep — 10+ reps"),
-          movement("deadbug", "Deadbug — 30 seconds"),
-          movement("arch-hang", "Arch hang — 10 reps", undefined, {
-            youtubeSearch: "bodyweightfitness arch hang",
-          }),
-          "Add arch hangs once you reach pull-up negatives.",
-          movement("support-hold", "Support hold — 30 seconds"),
-          "Add support holds once you reach negative dips.",
-          movement(
+          warmUp("squat-sky-reach", "Squat Sky Reach", "5-10 Reps"),
+          warmUp("wrist-prep", "Wrist Prep", "10+ Reps", "GMB wrist prep"),
+          warmUp("deadbug", "Deadbug", "30 Seconds"),
+          warmUp("arch-hang", "Arch Hang", "10 Reps, from Negatives"),
+          warmUp("support-hold", "Support Hold", "30 Seconds, from Dips"),
+          warmUp(
             "easier-squat",
-            "Easier squat progression — 10 reps",
-            undefined,
-            { youtubeSearch: null },
+            "Easier Squat Step",
+            "10 Reps, from Bulgarians",
+            null,
           ),
-          "Add once you reach Bulgarian split squats.",
-          movement(
+          warmUp(
             "easier-hinge",
-            "Easier hinge progression — 10 reps",
-            undefined,
-            { youtubeSearch: null },
+            "Easier Hinge Step",
+            "10 Reps, from Nordics",
+            null,
           ),
-          "Add once you reach banded Nordic curls.",
         ],
       },
       {
-        title: "First pair — 3 rounds",
+        title: "Pair 1: [3 Sets · Rest 90s]",
         exercises: [
-          ...progression(
+          progression(
             "pull-up",
-            "Pull-up progression",
-            "3 × 5–8",
-            "Pull-up negatives, 6 / 6 / 5",
-            [
-              "Scapular pulls",
-              "Arch hangs",
-              "Pull-up negatives",
-              "Pull-ups",
-              "Weighted pull-ups",
-            ],
+            "Pull-up Progression",
+            "5-8",
+            "Negatives, 6/6/5",
           ),
-          ...progression(
+          progression(
             "squat",
-            "Squat progression",
-            "3 × 5–8",
-            "Bulgarian split squat, 8 / 7 / 7",
-            [
-              "Assisted squat",
-              "Squat",
-              "Split squat",
-              "Bulgarian split squat",
-              "Beginner shrimp squat",
-              "Intermediate shrimp squat",
-              "Advanced shrimp squat",
-              "Weighted shrimp squat",
-            ],
+            "Squat Progression",
+            "5-8",
+            "Bulgarian split squat, 8/7/7",
           ),
-          "Rest 90 seconds after each exercise.",
         ],
       },
       {
-        title: "Second pair — 3 rounds",
+        title: "Pair 2: [3 Sets · Rest 90s]",
         exercises: [
-          ...progression(
+          progression(
             "dip",
-            "Dip progression",
-            "3 × 5–8",
-            "Parallel bar dips, 7 / 6 / 6",
-            [
-              "Parallel bar support hold",
-              "Negative dips",
-              "Parallel bar dips",
-              "Weighted dips",
-            ],
+            "Dip Progression",
+            "5-8",
+            "Parallel bar dips, 7/6/6",
           ),
-          ...progression(
+          progression(
             "hinge",
-            "Hinge progression",
-            "3 × 5–8",
-            "Single-leg deadlift, 8 / 8 / 7",
-            [
-              "Romanian deadlift",
-              "Single-leg deadlift",
-              "Banded Nordic curl negatives",
-              "Banded Nordic curls",
-              "Nordic curls",
-            ],
+            "Hinge Progression",
+            "5-8",
+            "Single-leg deadlift, 8/8/7",
           ),
-          "Rest 90 seconds after each exercise.",
         ],
       },
       {
-        title: "Third pair — 3 rounds",
+        title: "Pair 3: [3 Sets · Rest 90s]",
         exercises: [
-          ...progression(
+          progression(
             "row",
-            "Row progression",
-            "3 × 5–8",
-            "Horizontal rows, 8 / 7 / 6",
-            [
-              "Vertical rows",
-              "Incline rows",
-              "Horizontal rows",
-              "Wide rows",
-              "Weighted inverted rows",
-            ],
+            "Row Progression",
+            "5-8",
+            "Horizontal rows, 8/7/6",
           ),
-          ...progression(
+          progression(
             "push-up",
-            "Push-up progression",
-            "3 × 5–8",
-            "Diamond push-ups, 8 / 7 / 6",
-            [
-              "Vertical push-ups",
-              "Incline push-ups",
-              "Full push-ups",
-              "Diamond push-ups",
-              "Pseudo planche push-ups",
-            ],
+            "Push-up Progression",
+            "5-8",
+            "Diamond push-ups, 8/7/6",
           ),
-          "Rest 90 seconds after each exercise.",
         ],
       },
       {
-        title: "Core triplet — 3 rounds",
+        title: "Core Triplet: [3 Sets · Rest 60s]",
         exercises: [
-          ...progression(
+          progression(
             "anti-extension",
-            "Anti-extension progression",
-            "3 × 8–12",
-            "Ring ab rollouts, 10 / 9 / 8",
-            ["Plank", "Ring ab rollouts"],
+            "Anti-Extension Progression",
+            "8-12",
+            "Ring ab rollouts, 10/9/8",
           ),
-          ...progression(
+          progression(
             "anti-rotation",
-            "Anti-rotation progression",
-            "3 × 8–12",
-            "Banded Pallof press, 12 / 12 / 10",
-            ["Banded Pallof press"],
+            "Anti-Rotation Progression",
+            "8-12",
+            "Banded Pallof press, 12/12/10",
           ),
-          ...progression(
+          progression(
             "extension",
-            "Extension progression",
-            "3 × 8–12",
-            "Reverse hyperextension, 12 / 10 / 10",
-            ["Reverse hyperextension"],
+            "Extension Progression",
+            "8-12",
+            "Reverse hyperextension, 12/10/10",
           ),
-          "Rest 60 seconds after each exercise.",
         ],
       },
       {
-        title: "Session rules",
+        title: "Tri-set 1: Upper Back [2-3 Sets · Rest 60s]",
         exercises: [
-          "Pick the step you can do for 3 × 5 with good form. Add a rep per set each session; at 3 × 8, move to the next step at 3 × 5.",
-          "Holds count 10–30 seconds per set. Move to the next step once all three sets reach 30 seconds. Hold the plank to 30 seconds before ring ab rollouts.",
-          "Stop one rep short of failure, e.g. 7 / 7 / 7 rather than 8 / 6 / 5. Rest up to 3 minutes when reps drop between sets.",
-          "Tempo 10X0: one second down, no pause, drive up fast, no pause at the top.",
-          "Train three times a week with at least one rest day between sessions.",
+          logged(
+            "reverse-fly",
+            "Reverse Fly",
+            "12-20",
+            "Reverse pec deck, 30 kg, 18/16/15",
+          ),
+          logged("shrug", "Dumbbell Shrug", "10-15", "2 × 24 kg, 15/14/12"),
+          logged("lateral-raise", "Lateral Raise", "12-20", "8 kg, 18/16/14"),
+        ],
+      },
+      {
+        title: "Tri-set 2: Chest & Arms [2-3 Sets · Rest 60s]",
+        exercises: [
+          logged("cable-fly", "Cable Fly", "12-15", "12.5 kg, 15/13/12"),
+          logged("cable-curl", "Cable Curl", "10-15", "20 kg, 15/13/12"),
+          logged(
+            "face-pull",
+            "Face Pull",
+            "15-20",
+            "18 kg, 20/18/17",
+            "face pull external rotation",
+          ),
+        ],
+      },
+      {
+        title: "Progressions",
+        exercises: [
+          "Start each step at 3 × 5 and add a rep per set each session. At 3 × 8, move to the next step. Holds: 10-30 seconds, move on at 3 × 30s.",
+          "Tri-sets: stop 1-2 reps short of failure. Add reps first, then the smallest load step. Fly through a full stretch; finish face pulls with the hands beside the ears.",
+          "Pull-up: Scapular Pulls → Arch Hangs → Negatives → Pull-ups → Weighted",
+          "Squat: Assisted → Squat → Split Squat → Bulgarian → Shrimp (Beginner → Intermediate → Advanced → Weighted)",
+          "Dip: Support Hold → Negatives → Parallel Bar Dips → Weighted",
+          "Hinge: Romanian Deadlift → Single-Leg Deadlift → Banded Nordic Negatives → Banded Nordics → Nordics",
+          "Row: Vertical → Incline → Horizontal → Wide → Weighted",
+          "Push-up: Vertical → Incline → Full → Diamond → Pseudo Planche",
+          "Anti-Extension: Plank (to 30s) → Ring Ab Rollouts",
+          "Anti-Rotation: Banded Pallof Press",
+          "Extension: Reverse Hyperextension",
         ],
       },
     ],
