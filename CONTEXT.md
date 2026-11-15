@@ -17,6 +17,12 @@ movement skill, weighted calisthenics, targeted pump work, flexibility, and
 easy running.
 _Avoid_: Built to Move cycle, bodybuilding split
 
+**Recommended Routine**:
+The ongoing r/bodyweightfitness full-body workout: a warm-up, three exercise
+pairs, and a core triplet. Each exercise follows a progression ladder; the
+trainee logs the current step and reps.
+_Avoid_: RR program run, Built to Move cycle
+
 **Workout sequence**:
 The recommended order of workout definitions in an ongoing program. It guides
 recovery without assigning a workout to a fixed calendar date.

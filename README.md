@@ -16,8 +16,20 @@ pnpm hybrid-ppl:seed
 ```
 
 The seed is idempotent. It preserves the existing owner and session history,
-and requires `HYBRID_PPL_OWNER_ID` only when the program and its MILE owner
+and requires `PROGRAM_OWNER_ID` only when the program and its MILE owner
 fallback do not exist.
+
+## Recommended Routine
+
+The r/bodyweightfitness Recommended Routine is an ongoing program with one
+full-body workout: a warm-up, three exercise pairs, and a core triplet. Each
+pair and triplet exercise records the progression step and reps. Synchronize
+it with the same idempotent seed:
+
+```bash
+pnpm recommended-routine:seed --dry-run
+pnpm recommended-routine:seed
+```
 
 ## Built to Move
 
