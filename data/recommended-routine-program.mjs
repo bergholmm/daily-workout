@@ -10,13 +10,17 @@ function warmUp(id, name, prescription, youtubeSearch = name) {
   }
 }
 
-function progression(id, name, reps, placeholder) {
+function logged(id, name, reps, placeholder, youtubeSearch = name) {
   return {
     id: `recommended-routine-${id}`,
     name: `${name} (${reps} Reps)`,
-    youtubeSearch: `bodyweightfitness ${name}`,
+    youtubeSearch,
     recordPrompt: { label: name, placeholder },
   }
+}
+
+function progression(id, name, reps, placeholder) {
+  return logged(id, name, reps, placeholder, `bodyweightfitness ${name}`)
 }
 
 export const recommendedRoutineProgram = {
@@ -36,14 +40,15 @@ export const recommendedRoutineWorkouts = [
     position: 1,
     title: "Full Body",
     summary:
-      "Three pairs and a core triplet. Alternate the exercises in each block, 3 times a week.",
-    durationMinutes: 60,
+      "Three pairs, a core triplet, and two pump tri-sets for posture. Alternate the exercises in each block, 3 times a week.",
+    durationMinutes: 75,
     focus: ["Full body", "Strength", "Progression ladders"],
     equipment: [
       "Pull-up bar",
       "Parallel bars or dip station",
       "Low bar, rings, or sturdy table for rows",
       "Resistance band",
+      "Cable stack and dumbbells",
     ],
     content: [
       {
@@ -149,9 +154,37 @@ export const recommendedRoutineWorkouts = [
         ],
       },
       {
+        title: "Tri-set 1: Upper Back [2-3 Sets · Rest 60s]",
+        exercises: [
+          logged(
+            "reverse-fly",
+            "Reverse Fly",
+            "12-20",
+            "Reverse pec deck, 30 kg, 18/16/15",
+          ),
+          logged("shrug", "Dumbbell Shrug", "10-15", "2 × 24 kg, 15/14/12"),
+          logged("lateral-raise", "Lateral Raise", "12-20", "8 kg, 18/16/14"),
+        ],
+      },
+      {
+        title: "Tri-set 2: Chest & Arms [2-3 Sets · Rest 60s]",
+        exercises: [
+          logged("cable-fly", "Cable Fly", "12-15", "12.5 kg, 15/13/12"),
+          logged("cable-curl", "Cable Curl", "10-15", "20 kg, 15/13/12"),
+          logged(
+            "face-pull",
+            "Face Pull",
+            "15-20",
+            "18 kg, 20/18/17",
+            "face pull external rotation",
+          ),
+        ],
+      },
+      {
         title: "Progressions",
         exercises: [
           "Start each step at 3 × 5 and add a rep per set each session. At 3 × 8, move to the next step. Holds: 10-30 seconds, move on at 3 × 30s.",
+          "Tri-sets: stop 1-2 reps short of failure. Add reps first, then the smallest load step. Fly through a full stretch; finish face pulls with the hands beside the ears.",
           "Pull-up: Scapular Pulls → Arch Hangs → Negatives → Pull-ups → Weighted",
           "Squat: Assisted → Squat → Split Squat → Bulgarian → Shrimp (Beginner → Intermediate → Advanced → Weighted)",
           "Dip: Support Hold → Negatives → Parallel Bar Dips → Weighted",

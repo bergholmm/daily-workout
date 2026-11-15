@@ -30,7 +30,7 @@ describe("Recommended Routine program definition", () => {
     ])
   })
 
-  it("lists the warm-up, three pairs, the core triplet, then the ladders", () => {
+  it("lists the warm-up, pairs, core, pump tri-sets, then the ladders", () => {
     const [workout] = recommendedRoutineWorkouts
 
     expect(workout.content.map((section) => section.title)).toEqual([
@@ -39,6 +39,8 @@ describe("Recommended Routine program definition", () => {
       "Pair 2: [3 Sets · Rest 90s]",
       "Pair 3: [3 Sets · Rest 90s]",
       "Core Triplet: [3 Sets · Rest 60s]",
+      "Tri-set 1: Upper Back [2-3 Sets · Rest 60s]",
+      "Tri-set 2: Chest & Arms [2-3 Sets · Rest 60s]",
       "Progressions",
     ])
     expect(
@@ -56,6 +58,16 @@ describe("Recommended Routine program definition", () => {
         "Anti-Extension Progression (8-12 Reps)",
         "Anti-Rotation Progression (8-12 Reps)",
         "Extension Progression (8-12 Reps)",
+      ],
+      [
+        "Reverse Fly (12-20 Reps)",
+        "Dumbbell Shrug (10-15 Reps)",
+        "Lateral Raise (12-20 Reps)",
+      ],
+      [
+        "Cable Fly (12-15 Reps)",
+        "Cable Curl (10-15 Reps)",
+        "Face Pull (15-20 Reps)",
       ],
       [],
     ])
@@ -105,9 +117,10 @@ describe("Recommended Routine program definition", () => {
   it("lists the progression rule and one ladder per exercise at the end", () => {
     const progressions = recommendedRoutineWorkouts[0].content.at(-1)!
 
-    expect(progressions.exercises).toHaveLength(10)
+    expect(progressions.exercises).toHaveLength(11)
     expect(progressions.exercises[0]).toContain("At 3 × 8")
-    expect(progressions.exercises[1]).toBe(
+    expect(progressions.exercises[1]).toContain("Tri-sets: stop 1-2 reps")
+    expect(progressions.exercises[2]).toBe(
       "Pull-up: Scapular Pulls → Arch Hangs → Negatives → Pull-ups → Weighted",
     )
   })
